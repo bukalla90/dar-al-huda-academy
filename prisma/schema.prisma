@@ -1,0 +1,209 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+// prisma/schema.prisma
+
+
+
+enum UserRole {
+  ADMIN
+  TEACHER
+  STUDENT
+}
+
+enum CourseType {
+  HIFZ
+  TAJWEED
+  NAZIRAH
+  MURAJAAH
+  AQIDAH
+  FIQH
+  HADITH
+  ARABIC_LANGUAGE
+  ISLAMIC_MANNERS
+}
+enum PaymentStatus {
+  PAID
+  UNPAID
+  PARTIAL
+  OVERDUE
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+}
+
+enum ApplicationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+enum MaterialType {
+  PDF
+  AUDIO
+  IMAGE
+}
+
+model User {
+  id           String   @id @default(cuid())
+  username     String   @unique
+  passwordHash String
+  role         UserRole
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  teacher Teacher?
+  student Student?
+
+  @@index([username])
+  @@index([role])
+}
+
+model Teacher {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  fullName  String
+  email     String   @unique
+  phone     String
+  bio       String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  students  Student[]
+  materials Material[]
+  progress  StudentProgress[]
+  sessions  ClassSession[]
+}
+
+model Student {
+  id             String    @id @default(cuid())
+  userId         String    @unique
+  teacherId      String?
+  fullName       String
+  age            Int
+  country        String
+  phone          String
+  courseType     CourseType
+  parentName     String
+  parentPhone    String
+  parentWhatsapp String
+  relationship   String
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  teacher     Teacher?          @relation(fields: [teacherId], references: [id])
+  progress    StudentProgress[]
+  payments    Payment[]
+  sessions    ClassSession[]
+  attendances Attendance[]      // Add this line
+  materials   Material[]        // Add this line
+}
+
+model Application {
+  id            String            @id @default(cuid())
+  fullName      String
+  age           Int
+  country       String
+  phone         String
+  email         String
+  desiredCourse CourseType
+  status        ApplicationStatus @default(PENDING)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+}
+
+model ClassSession {
+  id          String   @id @default(cuid())
+  teacherId   String
+  studentId   String
+  meetingUrl  String
+  scheduledAt DateTime
+  status      String   @default("SCHEDULED")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  teacher     Teacher       @relation(fields: [teacherId], references: [id])
+  student     Student       @relation(fields: [studentId], references: [id])
+  attendances Attendance[]
+}
+
+model Attendance {
+  id        String           @id @default(cuid())
+  studentId String
+  sessionId String
+  status    AttendanceStatus
+  createdAt DateTime         @default(now())
+
+  student Student      @relation(fields: [studentId], references: [id])
+  session ClassSession @relation(fields: [sessionId], references: [id])
+
+  @@index([studentId])
+  @@index([sessionId])
+}
+
+model Material {
+  id        String       @id @default(cuid())
+  title     String
+  fileUrl   String
+  type      MaterialType
+  teacherId String
+  studentId String?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  teacher Teacher  @relation(fields: [teacherId], references: [id])
+  student Student? @relation(fields: [studentId], references: [id])
+}
+
+model StudentProgress {
+  id        String   @id @default(cuid())
+  studentId String
+  teacherId String
+  surah     String
+  ayahFrom  Int
+  ayahTo    Int
+  notes     String
+  score     Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  student Student @relation(fields: [studentId], references: [id])
+  teacher Teacher @relation(fields: [teacherId], references: [id])
+
+  @@index([studentId])
+  @@index([teacherId])
+  @@index([surah])
+}
+
+model Payment {
+  id        String        @id @default(cuid())
+  studentId String
+  amount    Float
+  currency  String        @default("USD")
+  month     String
+  status    PaymentStatus
+  notes     String?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  student Student @relation(fields: [studentId], references: [id])
+
+  @@index([studentId])
+  @@index([month])
+  @@index([status])
+}

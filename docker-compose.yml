@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: dar-al-huda-db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: dar_al_huda
+    ports:
+      - "5436:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
