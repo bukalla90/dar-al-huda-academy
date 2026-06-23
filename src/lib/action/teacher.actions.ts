@@ -1,27 +1,36 @@
-// src/lib/actions/teacher.actions.ts
+// src/lib/action/teacher.actions.ts
 'use server';
 
 import { prisma } from '@/lib/prisma';
-import { CreateTeacherDTO, UpdateTeacherDTO } from '@/lib/dto/teacher.dto';
+import { CreateTeacherDTO } from '@/lib/dto/teacher.dto';
 import { hash } from 'bcryptjs';
 import { revalidatePath } from 'next/cache';
-import type { Teacher, User, Student } from '@/generated/prisma/client';
 
-interface TeacherWithRelations {
-  id: string;
-  fullName: string;
-  email: string;
-  phone: string;
-  bio: string | null;
-  user: Pick<User, 'id' | 'username' | 'isActive'>;
-  students: Pick<Student, 'id'>[];
-}
-
-export async function createTeacher(data: CreateTeacherDTO): Promise<{ success: boolean; error?: string; teacherId?: string }> {
+export async function createTeacher(data: CreateTeacherDTO): Promise<{ 
+  success: boolean; 
+  error?: string; 
+  teacherId?: string;
+}> {
   try {
     const validated = CreateTeacherDTO.parse(data);
+
+    const existingUser = await prisma.user.findUnique({
+      where: { username: validated.username },
+    });
+
+    if (existingUser) {
+      return { success: false, error: `Username "${validated.username}" is already taken.` };
+    }
+
+    const existingEmail = await prisma.teacher.findUnique({
+      where: { email: validated.email },
+    });
+
+    if (existingEmail) {
+      return { success: false, error: `Email "${validated.email}" is already registered.` };
+    }
     
-    const passwordHash: string = await hash(validated.password, 12);
+    const passwordHash = await hash(validated.password, 12);
     
     const teacher = await prisma.$transaction(async (tx) => {
       const user = await tx.user.create({
@@ -38,7 +47,7 @@ export async function createTeacher(data: CreateTeacherDTO): Promise<{ success: 
           fullName: validated.fullName,
           email: validated.email,
           phone: validated.phone,
-          bio: validated.bio,
+          bio: validated.bio || null,
         },
       });
 
@@ -48,13 +57,30 @@ export async function createTeacher(data: CreateTeacherDTO): Promise<{ success: 
     revalidatePath('/admin/teachers');
     return { success: true, teacherId: teacher.id };
   } catch (error) {
-    return { success: false, error: 'Failed to create teacher' };
+    return { success: false, error: 'Failed to create teacher.' };
   }
 }
 
-export async function getTeachers(): Promise<{ success: boolean; teachers?: TeacherWithRelations[]; error?: string }> {
+// ADD THIS EXPORT
+export async function getTeachers(): Promise<{ 
+  success: boolean; 
+  teachers?: Array<{
+    id: string;
+    fullName: string;
+    email: string;
+    phone: string;
+    bio: string | null;
+    user: {
+      id: string;
+      username: string;
+      isActive: boolean;
+    };
+    students: Array<{ id: string }>;
+  }>;
+  error?: string;
+}> {
   try {
-    const teachers: TeacherWithRelations[] = await prisma.teacher.findMany({
+    const teachers = await prisma.teacher.findMany({
       include: {
         user: {
           select: {
@@ -64,9 +90,7 @@ export async function getTeachers(): Promise<{ success: boolean; teachers?: Teac
           },
         },
         students: {
-          select: {
-            id: true,
-          },
+          select: { id: true },
         },
       },
       orderBy: { createdAt: 'desc' },

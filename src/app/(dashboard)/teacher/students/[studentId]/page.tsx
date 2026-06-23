@@ -2,7 +2,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -39,7 +38,6 @@ export default function StudentProgressPage({
 }: {
   params: { studentId: string };
 }): React.ReactNode {
-  const router = useRouter();
   const [showForm, setShowForm] = useState<boolean>(false);
   const [surah, setSurah] = useState<string>('');
   const [ayahFrom, setAyahFrom] = useState<string>('');
@@ -50,9 +48,6 @@ export default function StudentProgressPage({
   const [status, setStatus] = useState<StudentStatus | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
-  const [studentName, setStudentName] = useState<string>('');
-  const [studentCourse, setStudentCourse] = useState<string>('');
-  const [studentInfo, setStudentInfo] = useState<string>('');
 
   useEffect(() => {
     loadData();
@@ -71,11 +66,6 @@ export default function StudentProgressPage({
     if (statusResult.success && statusResult.status) {
       setStatus(statusResult.status);
     }
-
-    // TODO: Fetch student basic info from student action
-    setStudentName('Student');
-    setStudentCourse('Hifz Program');
-    setStudentInfo('Age 12 • Ethiopia');
   }
 
   async function handleAddProgress(): Promise<void> {
@@ -89,7 +79,7 @@ export default function StudentProgressPage({
 
     const result = await createProgress({
       studentId: params.studentId,
-      teacherId: 'teacher-id', // TODO: Get from session
+      teacherId: 'temp-teacher-id', // TODO: Get from session
       surah,
       ayahFrom: parseInt(ayahFrom),
       ayahTo: parseInt(ayahTo),
@@ -106,7 +96,6 @@ export default function StudentProgressPage({
       setNotes('');
       setShowForm(false);
       loadData();
-      router.refresh();
     } else {
       setError(result.error || 'Failed to save progress');
     }
@@ -125,8 +114,8 @@ export default function StudentProgressPage({
             </Button>
           </Link>
           <div>
-            <h1 className="text-2xl font-bold">{studentName}</h1>
-            <p className="text-sm text-gray-500">{studentCourse} • {studentInfo}</p>
+            <h1 className="text-2xl font-bold">Student Progress</h1>
+            <p className="text-sm text-gray-500">Track memorization and recitation</p>
           </div>
         </div>
         <Button onClick={() => setShowForm(!showForm)} className="bg-primary">
@@ -135,7 +124,7 @@ export default function StudentProgressPage({
         </Button>
       </div>
 
-      {/* Current Status Card */}
+      {/* Current Status */}
       {status && (
         <Card className="bg-gradient-to-r from-primary to-secondary text-white">
           <CardContent className="pt-6">
@@ -145,10 +134,6 @@ export default function StudentProgressPage({
                 <p className="text-2xl font-bold">{status.currentSurah}</p>
               </div>
               <div>
-                <p className="text-white/80 text-sm">Current Juz</p>
-                <p className="text-2xl font-bold">{status.currentJuz}</p>
-              </div>
-              <div>
                 <p className="text-white/80 text-sm">Average Score</p>
                 <p className="text-2xl font-bold">{status.averageScore}/10</p>
               </div>
@@ -156,12 +141,15 @@ export default function StudentProgressPage({
                 <p className="text-white/80 text-sm">Total Records</p>
                 <p className="text-2xl font-bold">{status.totalRecords}</p>
               </div>
+              <div>
+                <p className="text-white/80 text-sm">Last Updated</p>
+                <p className="text-lg font-semibold">
+                  {status.lastUpdated 
+                    ? new Date(status.lastUpdated).toLocaleDateString() 
+                    : 'Never'}
+                </p>
+              </div>
             </div>
-            {status.lastUpdated && (
-              <p className="text-white/60 text-xs mt-4">
-                Last updated: {new Date(status.lastUpdated).toLocaleDateString()}
-              </p>
-            )}
           </CardContent>
         </Card>
       )}
@@ -178,9 +166,7 @@ export default function StudentProgressPage({
           <CardContent>
             <div className="space-y-4">
               {error && (
-                <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm">
-                  {error}
-                </div>
+                <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm">{error}</div>
               )}
 
               <div>
@@ -189,7 +175,6 @@ export default function StudentProgressPage({
                   value={surah} 
                   onChange={(e) => setSurah(e.target.value)}
                   placeholder="e.g., Al-Baqarah"
-                  required
                 />
               </div>
 
@@ -201,8 +186,6 @@ export default function StudentProgressPage({
                     value={ayahFrom} 
                     onChange={(e) => setAyahFrom(e.target.value)}
                     placeholder="1"
-                    min="1"
-                    required
                   />
                 </div>
                 <div>
@@ -212,8 +195,6 @@ export default function StudentProgressPage({
                     value={ayahTo} 
                     onChange={(e) => setAyahTo(e.target.value)}
                     placeholder="5"
-                    min="1"
-                    required
                   />
                 </div>
               </div>
@@ -229,7 +210,7 @@ export default function StudentProgressPage({
                       className={`w-10 h-10 rounded-full font-medium transition-all ${
                         score === String(num)
                           ? 'bg-primary text-white scale-110 shadow-lg'
-                          : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                          : 'bg-gray-100 hover:bg-gray-200'
                       }`}
                     >
                       {num}
@@ -243,7 +224,7 @@ export default function StudentProgressPage({
                 <Textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Add feedback, corrections, or notes about the student's performance..."
+                  placeholder="Add feedback or notes..."
                   rows={3}
                 />
               </div>
@@ -270,7 +251,6 @@ export default function StudentProgressPage({
             <CardContent className="py-8 text-center text-gray-500">
               <BookOpen className="h-12 w-12 mx-auto mb-3 text-gray-300" />
               <p>No progress records yet</p>
-              <p className="text-sm">Start by adding the first progress record</p>
             </CardContent>
           </Card>
         ) : (
@@ -285,15 +265,12 @@ export default function StudentProgressPage({
                         <span className="text-sm font-medium">{record.score}/10</span>
                       </div>
                     </div>
-                    
                     <h3 className="font-semibold text-lg">
                       Surah {record.surah} - Ayah {record.ayahFrom}-{record.ayahTo}
                     </h3>
-                    
                     {record.notes && (
                       <p className="text-sm text-gray-600 mt-2">{record.notes}</p>
                     )}
-                    
                     <div className="flex items-center justify-between mt-3">
                       <p className="text-xs text-gray-400">
                         {new Date(record.createdAt).toLocaleDateString()} • By {record.teacher.fullName}

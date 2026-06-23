@@ -1,7 +1,7 @@
 // src/app/(dashboard)/teacher/schedule/page.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,15 +14,31 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Video, Plus, Calendar, Clock } from 'lucide-react';
+import { 
+  Video, 
+  Plus, 
+  Calendar, 
+  Clock, 
+  Users,
+  X,
+} from 'lucide-react';
+import { getTeacherSessions, getTeacherStudents, createClassSession } from '@/lib/action/class.action';
 
-interface ClassSession {
+interface SessionType {
   id: string;
-  studentName: string;
-  date: string;
-  time: string;
+  scheduledAt: Date;
   meetingUrl: string;
   status: string;
+  student: {
+    id: string;
+    fullName: string;
+  };
+}
+
+interface StudentOption {
+  id: string;
+  fullName: string;
+  courseType: string;
 }
 
 export default function TeacherSchedulePage(): React.ReactNode {
@@ -30,40 +46,74 @@ export default function TeacherSchedulePage(): React.ReactNode {
   const [studentId, setStudentId] = useState<string>('');
   const [date, setDate] = useState<string>('');
   const [time, setTime] = useState<string>('');
+  const [sessions, setSessions] = useState<SessionType[]>([]);
+  const [students, setStudents] = useState<StudentOption[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string>('');
+  const [success, setSuccess] = useState<string>('');
 
-  function generateJitsiLink(): string {
-    const roomName = `dar-al-huda-${Date.now()}-${Math.random().toString(36).substring(7)}`;
-    return `https://meet.jit.si/${roomName}`;
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  async function loadData(): Promise<void> {
+    const teacherId = 'temp-teacher-id'; // TODO: Get from session
+    
+    const [sessionsResult, studentsResult] = await Promise.all([
+      getTeacherSessions(teacherId),
+      getTeacherStudents(teacherId),
+    ]);
+
+    if (sessionsResult.success && sessionsResult.sessions) {
+      setSessions(sessionsResult.sessions);
+    }
+
+    if (studentsResult.success && studentsResult.students) {
+      setStudents(studentsResult.students);
+    }
   }
 
   async function handleCreateSession(): Promise<void> {
-    const meetingUrl = generateJitsiLink();
-    // Save to database with meetingUrl
-    setShowForm(false);
+    if (!studentId || !date || !time) {
+      setError('Please fill all fields');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    const result = await createClassSession({
+      teacherId: 'temp-teacher-id', // TODO: Get from session
+      studentId,
+      date,
+      time,
+    });
+
+    if (result.success) {
+      setSuccess(`Meeting link created!`);
+      setStudentId('');
+      setDate('');
+      setTime('');
+      setShowForm(false);
+      loadData();
+      
+      setTimeout(() => setSuccess(''), 3000);
+    } else {
+      setError(result.error || 'Failed to create session');
+    }
+
+    setLoading(false);
   }
 
-  // Mock sessions
-  const sessions: ClassSession[] = [
-    {
-      id: '1',
-      studentName: 'Ahmed Mohammed',
-      date: '2024-01-15',
-      time: '10:00',
-      meetingUrl: 'https://meet.jit.si/dar-al-huda-abc123',
-      status: 'SCHEDULED',
-    },
-    {
-      id: '2',
-      studentName: 'Fatima Ali',
-      date: '2024-01-15',
-      time: '14:00',
-      meetingUrl: 'https://meet.jit.si/dar-al-huda-def456',
-      status: 'SCHEDULED',
-    },
-  ];
+  const morningSessions = sessions.filter((s) => {
+    const hour = new Date(s.scheduledAt).getHours();
+    return hour < 12;
+  });
 
-  const morningSessions = sessions.filter(s => parseInt(s.time) < 12);
-  const afternoonSessions = sessions.filter(s => parseInt(s.time) >= 12);
+  const afternoonSessions = sessions.filter((s) => {
+    const hour = new Date(s.scheduledAt).getHours();
+    return hour >= 12;
+  });
 
   return (
     <div className="space-y-6 pb-20 lg:pb-0">
@@ -78,26 +128,40 @@ export default function TeacherSchedulePage(): React.ReactNode {
         </Button>
       </div>
 
-      {/* Create Session Form */}
+      {/* Success/Error Messages */}
+      {success && (
+        <div className="bg-green-50 text-green-600 p-4 rounded-xl text-sm">{success}</div>
+      )}
+      {error && (
+        <div className="bg-red-50 text-red-600 p-4 rounded-xl text-sm">{error}</div>
+      )}
+
+      {/* Create Form */}
       {showForm && (
-        <Card className="border-2 border-primary/20 bg-gradient-to-r from-primary/5 to-secondary/5">
-          <CardHeader>
+        <Card className="border-2 border-primary/20">
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <Video className="h-5 w-5 text-primary" />
               Create New Session
             </CardTitle>
+            <Button variant="ghost" size="icon" onClick={() => setShowForm(false)}>
+              <X className="h-4 w-4" />
+            </Button>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div>
                 <Label>Select Student</Label>
                 <Select value={studentId} onValueChange={setStudentId}>
-                  <SelectTrigger>
+                  <SelectTrigger className="bg-white">
                     <SelectValue placeholder="Choose student" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="student1">Ahmed Mohammed</SelectItem>
-                    <SelectItem value="student2">Fatima Ali</SelectItem>
+                    {students.map((student) => (
+                      <SelectItem key={student.id} value={student.id}>
+                        {student.fullName} - {student.courseType.replace(/_/g, ' ')}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -119,8 +183,12 @@ export default function TeacherSchedulePage(): React.ReactNode {
                   />
                 </div>
               </div>
-              <Button onClick={handleCreateSession} className="w-full">
-                Generate Meeting Link & Save
+              <Button 
+                onClick={handleCreateSession} 
+                disabled={loading}
+                className="w-full bg-primary"
+              >
+                {loading ? 'Creating...' : 'Generate Meeting Link & Save'}
               </Button>
             </div>
           </CardContent>
@@ -131,10 +199,8 @@ export default function TeacherSchedulePage(): React.ReactNode {
       <Card>
         <CardHeader className="border-b bg-gradient-to-r from-amber-50 to-yellow-50">
           <CardTitle className="flex items-center gap-2 text-lg">
-            <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center">
-              <Calendar className="h-5 w-5 text-amber-600" />
-            </div>
-            Morning Sessions
+            <Calendar className="h-5 w-5 text-amber-600" />
+            Morning Sessions ({morningSessions.length})
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
@@ -147,16 +213,17 @@ export default function TeacherSchedulePage(): React.ReactNode {
                       <Video className="h-5 w-5 text-primary" />
                     </div>
                     <div>
-                      <p className="font-medium">{session.studentName}</p>
+                      <p className="font-medium">{session.student.fullName}</p>
                       <p className="text-sm text-gray-500">
-                        {session.date} at {session.time}
+                        {new Date(session.scheduledAt).toLocaleDateString()} at{' '}
+                        {new Date(session.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
                     <Badge variant="success">Scheduled</Badge>
                     <a href={session.meetingUrl} target="_blank">
-                      <Button size="sm" variant="outline" className="text-primary border-primary">
+                      <Button size="sm" className="bg-primary">
                         <Video className="h-4 w-4 mr-1" />
                         Join
                       </Button>
@@ -166,10 +233,7 @@ export default function TeacherSchedulePage(): React.ReactNode {
               ))}
             </div>
           ) : (
-            <div className="p-8 text-center text-gray-500">
-              <Calendar className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-              <p>No morning sessions</p>
-            </div>
+            <div className="p-8 text-center text-gray-500">No morning sessions</div>
           )}
         </CardContent>
       </Card>
@@ -178,10 +242,8 @@ export default function TeacherSchedulePage(): React.ReactNode {
       <Card>
         <CardHeader className="border-b bg-gradient-to-r from-blue-50 to-indigo-50">
           <CardTitle className="flex items-center gap-2 text-lg">
-            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-              <Clock className="h-5 w-5 text-blue-600" />
-            </div>
-            Afternoon Sessions
+            <Clock className="h-5 w-5 text-blue-600" />
+            Afternoon Sessions ({afternoonSessions.length})
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
@@ -194,16 +256,17 @@ export default function TeacherSchedulePage(): React.ReactNode {
                       <Video className="h-5 w-5 text-primary" />
                     </div>
                     <div>
-                      <p className="font-medium">{session.studentName}</p>
+                      <p className="font-medium">{session.student.fullName}</p>
                       <p className="text-sm text-gray-500">
-                        {session.date} at {session.time}
+                        {new Date(session.scheduledAt).toLocaleDateString()} at{' '}
+                        {new Date(session.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
                     <Badge variant="success">Scheduled</Badge>
                     <a href={session.meetingUrl} target="_blank">
-                      <Button size="sm" variant="outline" className="text-primary border-primary">
+                      <Button size="sm" className="bg-primary">
                         <Video className="h-4 w-4 mr-1" />
                         Join
                       </Button>
@@ -213,10 +276,7 @@ export default function TeacherSchedulePage(): React.ReactNode {
               ))}
             </div>
           ) : (
-            <div className="p-8 text-center text-gray-500">
-              <Clock className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-              <p>No afternoon sessions</p>
-            </div>
+            <div className="p-8 text-center text-gray-500">No afternoon sessions</div>
           )}
         </CardContent>
       </Card>

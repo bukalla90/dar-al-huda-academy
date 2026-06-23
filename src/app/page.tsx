@@ -14,13 +14,9 @@ import {
   Phone,
   Mail,
   MessageCircle,
-  ChevronRight,
-  Play,
-  CheckCircle,
   ArrowRight,
   GraduationCap,
   Clock,
-  MapPin,
   Menu,
   X,
 } from 'lucide-react';
@@ -45,14 +41,11 @@ export default function HomePage(): React.ReactNode {
       home: 'Home',
       about: 'About',
       courses: 'Courses',
-      teachers: 'Teachers',
       contact: 'Contact',
       login: 'Login',
       dashboard: 'Dashboard',
       heroTitle: 'Learn Quran Online with Qualified Teachers',
       heroSubtitle: 'Master the recitation, memorization, and understanding of the Holy Quran from the comfort of your home.',
-      startLearning: 'Start Learning',
-      tryFree: 'Try Free Class',
       quranVerse: 'اقْرَأْ بِاسْمِ رَبِّكَ الَّذِي خَلَقَ',
       quranTranslation: '"Read in the name of your Lord who created."',
       quranReference: 'Surah Al-Alaq 96:1',
@@ -66,10 +59,11 @@ export default function HomePage(): React.ReactNode {
       quranPrograms: 'Quran Programs',
       islamicStudies: 'Islamic Studies',
       availableTimes: 'Available Class Times',
-      testimonials: 'What Our Students Say',
       readyToStart: 'Ready to Start Your Quran Journey?',
-      readyDesc: 'Join thousands of students worldwide who are learning the Quran with qualified teachers.',
-      getStarted: 'Get Started Today',
+      readyDesc: 'Contact us to get registered and start learning the Quran with qualified teachers.',
+      getStarted: 'Contact Us Now',
+      howToRegister: 'How to Register',
+      howToRegisterDesc: 'Contact us through any of the following methods to get registered. Our admin will create your account and send you login details.',
       footerAbout: 'Dar Al Huda Academy provides quality online Quran education to students worldwide with qualified teachers.',
       quickLinks: 'Quick Links',
       contactUs: 'Contact Us',
@@ -80,14 +74,11 @@ export default function HomePage(): React.ReactNode {
       home: 'መነሻ',
       about: 'ስለ እኛ',
       courses: 'ኮርሶች',
-      teachers: 'መምህራን',
       contact: 'አድራሻ',
       login: 'ግባ',
       dashboard: 'ዳሽቦርድ',
       heroTitle: 'ከብቁ መምህራን ጋር ቁርአንን በኦንላይን ይማሩ',
       heroSubtitle: 'ከቤትዎ ሆነው የቁርአንን ንባብ፣ ሒፍዝ እና መረዳትን በተደራጀ መንገድ ይማሩ።',
-      startLearning: 'መማር ጀምር',
-      tryFree: 'ነፃ ትምህርት ሞክር',
       quranVerse: 'اقْرَأْ بِاسْمِ رَبِّكَ الَّذِي خَلَقَ',
       quranTranslation: '"በፈጠረህ ጌታህ ስም አንብብ።"',
       quranReference: 'ሱረቱ አል-አለቅ 96:1',
@@ -101,10 +92,11 @@ export default function HomePage(): React.ReactNode {
       quranPrograms: 'የቁርአን ፕሮግራሞች',
       islamicStudies: 'ኢስላሚክ ትምህርቶች',
       availableTimes: 'የሚገኙ የትምህርት ሰዓቶች',
-      testimonials: 'ተማሪዎቻችን ምን ይላሉ?',
       readyToStart: 'የቁርአን ጉዞዎን ለመጀመር ዝግጁ ነዎት?',
-      readyDesc: 'በዓለም ዙሪያ ካሉ በሺዎች ከሚቆጠሩ ተማሪዎች ጋር ቁርአንን በብቁ መምህራን ይማሩ።',
-      getStarted: 'ዛሬ ይጀምሩ',
+      readyDesc: 'ለመመዝገብ ያግኙንና ከብቁ መምህራን ጋር ቁርአንን መማር ይጀምሩ።',
+      getStarted: 'አሁን ያግኙን',
+      howToRegister: 'እንዴት መመዝገብ እንደሚቻል',
+      howToRegisterDesc: 'ለመመዝገብ ከሚከተሉት መንገዶች በአንዱ ያግኙን። አስተዳዳሪያችን አካውንትዎን ፈጥሮ የመግቢያ መረጃ ይልክልዎታል።',
       footerAbout: 'ዳር አል-ሁዳ አካዳሚ ለተማሪዎች ጥራት ያለው የኦንላይን ቁርአን ትምህርት በብቁ መምህራን ይሰጣል።',
       quickLinks: 'ፈጣን አገናኞች',
       contactUs: 'አድራሻ',
@@ -116,15 +108,28 @@ export default function HomePage(): React.ReactNode {
   const t = translations[language];
 
   const classTimes = [
-    '2:00 AM – 4:00 AM',
-    '4:00 AM – 6:00 AM',
-    '6:00 AM – 8:00 AM',
-    '8:00 AM – 10:00 AM',
-    '10:00 AM – 12:00 PM',
-    '2:00 PM – 4:00 PM',
-    '4:00 PM – 6:00 PM',
-    '8:00 PM – 10:00 PM',
+    { group: 'Group 1', time: '12:00 PM – 1:30 PM' },
+    { group: 'Group 2', time: '3:00 PM – 6:00 PM' },
+    { group: 'Group 3', time: '8:00 PM – 9:30 PM' },
+    { group: 'Group 4', time: '11:00 PM – 12:00 AM' },
+    { group: 'Group 5', time: '1:00 AM – 1:30 AM' },
+    { group: 'Group 6', time: '3:00 AM – 5:00 AM' },
   ];
+
+  // Clean course titles - remove brackets for English
+  function getCleanTitle(course: typeof courses[0]): string {
+    if (language === 'en') {
+      return course.titleEn.replace(/\s*\(.*?\)\s*/g, '').trim();
+    }
+    return course.titleAm;
+  }
+
+  function getCleanDescription(course: typeof courses[0]): string {
+    if (language === 'en') {
+      return course.descriptionEn;
+    }
+    return course.descriptionAm;
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -136,7 +141,6 @@ export default function HomePage(): React.ReactNode {
       }`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            {/* Logo */}
             <Link href="/" className="flex items-center gap-2">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg">
                 <BookOpen className="h-6 w-6 text-white" />
@@ -146,36 +150,32 @@ export default function HomePage(): React.ReactNode {
               </span>
             </Link>
 
-            {/* Desktop Navigation */}
             <div className="hidden lg:flex items-center gap-8">
-              <Link href="/" className={`text-sm font-medium ${isScrolled ? 'text-text' : 'text-white'} hover:text-accent transition-colors`}>
+              <Link href="/" className={`text-sm font-medium ${isScrolled ? 'text-gray-700' : 'text-white'} hover:text-accent transition-colors`}>
                 {t.home}
               </Link>
-              <Link href="#courses" className={`text-sm font-medium ${isScrolled ? 'text-text' : 'text-white'} hover:text-accent transition-colors`}>
+              <Link href="#courses" className={`text-sm font-medium ${isScrolled ? 'text-gray-700' : 'text-white'} hover:text-accent transition-colors`}>
                 {t.courses}
               </Link>
-              <Link href="#about" className={`text-sm font-medium ${isScrolled ? 'text-text' : 'text-white'} hover:text-accent transition-colors`}>
+              <Link href="#about" className={`text-sm font-medium ${isScrolled ? 'text-gray-700' : 'text-white'} hover:text-accent transition-colors`}>
                 {t.about}
               </Link>
-              <Link href="#contact" className={`text-sm font-medium ${isScrolled ? 'text-text' : 'text-white'} hover:text-accent transition-colors`}>
+              <Link href="#contact" className={`text-sm font-medium ${isScrolled ? 'text-gray-700' : 'text-white'} hover:text-accent transition-colors`}>
                 {t.contact}
               </Link>
             </div>
 
-            {/* Right Side */}
             <div className="flex items-center gap-3">
-              {/* Language Toggle */}
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setLanguage(language === 'en' ? 'am' : 'en')}
-                className={isScrolled ? 'text-text' : 'text-white'}
+                className={`${isScrolled ? 'text-gray-700' : 'text-white'} hover:text-accent`}
               >
                 <Globe className="h-4 w-4 mr-1" />
                 {language === 'en' ? 'አማርኛ' : 'English'}
               </Button>
 
-              {/* Auth Button */}
               {isLoggedIn ? (
                 <Link href="/student">
                   <Button className="bg-accent hover:bg-accent/90 text-white">
@@ -185,28 +185,30 @@ export default function HomePage(): React.ReactNode {
                 </Link>
               ) : (
                 <Link href="/login">
-                  <Button className="bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white border border-white/30">
+                  <Button className={`${
+                    isScrolled 
+                      ? 'bg-primary text-white hover:bg-primary/90' 
+                      : 'bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white border border-white/30'
+                  }`}>
                     {t.login}
                   </Button>
                 </Link>
               )}
 
-              {/* Mobile Menu Button */}
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 className="lg:hidden"
               >
                 {mobileMenuOpen ? (
-                  <X className={`h-6 w-6 ${isScrolled ? 'text-text' : 'text-white'}`} />
+                  <X className={`h-6 w-6 ${isScrolled ? 'text-gray-700' : 'text-white'}`} />
                 ) : (
-                  <Menu className={`h-6 w-6 ${isScrolled ? 'text-text' : 'text-white'}`} />
+                  <Menu className={`h-6 w-6 ${isScrolled ? 'text-gray-700' : 'text-white'}`} />
                 )}
               </button>
             </div>
           </div>
         </div>
 
-        {/* Mobile Menu */}
         {mobileMenuOpen && (
           <div className="lg:hidden bg-white border-t">
             <div className="px-4 py-4 space-y-3">
@@ -221,19 +223,16 @@ export default function HomePage(): React.ReactNode {
 
       {/* Hero Section */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-primary via-primary to-secondary">
-        {/* Animated Background */}
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-20 left-10 w-72 h-72 bg-white rounded-full mix-blend-overlay filter blur-xl animate-blob" />
           <div className="absolute top-40 right-10 w-72 h-72 bg-accent rounded-full mix-blend-overlay filter blur-xl animate-blob animation-delay-2000" />
           <div className="absolute -bottom-8 left-20 w-72 h-72 bg-secondary rounded-full mix-blend-overlay filter blur-xl animate-blob animation-delay-4000" />
         </div>
 
-        {/* Pattern Overlay */}
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/arabesque.png')] opacity-5" />
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-32">
           <div className="text-center">
-            {/* Quran Verse */}
             <div className="mb-8">
               <p className="text-3xl sm:text-4xl lg:text-5xl font-arabic text-accent mb-4 leading-relaxed">
                 {t.quranVerse}
@@ -251,22 +250,6 @@ export default function HomePage(): React.ReactNode {
               {t.heroSubtitle}
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/apply">
-                <Button size="lg" className="bg-accent hover:bg-accent/90 text-white text-lg px-8 py-6 rounded-full shadow-xl hover:shadow-2xl transition-all">
-                  <Play className="h-5 w-5 mr-2" />
-                  {t.tryFree}
-                </Button>
-              </Link>
-              <Link href="#courses">
-                <Button size="lg" variant="outline" className="text-white border-white/30 hover:bg-white/10 text-lg px-8 py-6 rounded-full">
-                  {t.startLearning}
-                  <ChevronRight className="h-5 w-5 ml-2" />
-                </Button>
-              </Link>
-            </div>
-
-            {/* Stats */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 mt-16">
               {[
                 { value: '500+', label: language === 'en' ? 'Students' : 'ተማሪዎች' },
@@ -282,18 +265,12 @@ export default function HomePage(): React.ReactNode {
             </div>
           </div>
         </div>
-
-        {/* Scroll Indicator */}
-        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
-          <ChevronRight className="h-8 w-8 text-white/50 rotate-90" />
-        </div>
       </section>
 
       {/* Quran Verses Section */}
       <section className="py-20 bg-gradient-to-b from-primary/5 to-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            {/* Verse Card */}
             <div className="bg-white rounded-3xl p-8 shadow-2xl border border-primary/10">
               <div className="text-center">
                 <p className="text-4xl sm:text-5xl font-arabic text-primary mb-6 leading-relaxed">
@@ -308,7 +285,6 @@ export default function HomePage(): React.ReactNode {
               </div>
             </div>
 
-            {/* Hadith Card */}
             <div className="bg-gradient-to-br from-accent/10 to-primary/10 rounded-3xl p-8 border border-accent/20">
               <div className="text-center">
                 <Star className="h-12 w-12 text-accent mx-auto mb-4" />
@@ -382,10 +358,10 @@ export default function HomePage(): React.ReactNode {
                       <BookOpen className="h-6 w-6 text-primary" />
                     </div>
                     <h3 className="font-semibold text-lg mb-2">
-                      {language === 'en' ? course.titleEn : course.titleAm}
+                      {getCleanTitle(course)}
                     </h3>
                     <p className="text-sm text-gray-500">
-                      {language === 'en' ? course.descriptionEn : course.descriptionAm}
+                      {getCleanDescription(course)}
                     </p>
                   </CardContent>
                 </Card>
@@ -408,10 +384,10 @@ export default function HomePage(): React.ReactNode {
                       <Star className="h-6 w-6 text-accent" />
                     </div>
                     <h3 className="font-semibold text-lg mb-2">
-                      {language === 'en' ? course.titleEn : course.titleAm}
+                      {getCleanTitle(course)}
                     </h3>
                     <p className="text-sm text-gray-500">
-                      {language === 'en' ? course.descriptionEn : course.descriptionAm}
+                      {getCleanDescription(course)}
                     </p>
                   </CardContent>
                 </Card>
@@ -427,13 +403,78 @@ export default function HomePage(): React.ReactNode {
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-text mb-4">{t.availableTimes}</h2>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-4xl mx-auto">
-            {classTimes.map((time, index) => (
-              <div key={index} className="bg-white rounded-xl p-4 text-center shadow-md hover:shadow-lg transition-shadow border border-gray-100">
-                <Clock className="h-6 w-6 text-primary mx-auto mb-2" />
-                <p className="text-sm font-medium text-text">{time}</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-4xl mx-auto">
+            {classTimes.map((item, index) => (
+              <div key={index} className="bg-white rounded-xl p-6 text-center shadow-md hover:shadow-lg transition-shadow border border-gray-100">
+                <Clock className="h-6 w-6 text-primary mx-auto mb-3" />
+                <p className="text-sm font-semibold text-primary mb-1">{item.group}</p>
+                <p className="text-sm font-medium text-text">{item.time}</p>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* How to Register */}
+      <section className="py-16 bg-gradient-to-br from-primary/5 to-secondary/5">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <Badge className="bg-primary/10 text-primary mb-4">{t.howToRegister}</Badge>
+            <h2 className="text-3xl sm:text-4xl font-bold text-text mb-4">{t.howToRegister}</h2>
+            <p className="text-gray-500 max-w-2xl mx-auto">{t.howToRegisterDesc}</p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-4xl mx-auto">
+            {/* WhatsApp */}
+            <a href="https://wa.me/251914600349" target="_blank" className="group">
+              <Card className="hover:shadow-xl transition-all duration-300 border-0 h-full">
+                <CardContent className="pt-8 pb-6 text-center">
+                  <div className="w-16 h-16 rounded-2xl bg-green-100 flex items-center justify-center mx-auto mb-4 group-hover:bg-green-200 transition-colors">
+                    <MessageCircle className="h-8 w-8 text-green-600" />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2">WhatsApp</h3>
+                  <p className="text-sm text-gray-500 mb-4">+251 91 460 0349</p>
+                  <Badge className="bg-green-100 text-green-700 border-0">
+                    {language === 'en' ? 'Click to Chat' : 'ለማውራት ይጫኑ'}
+                  </Badge>
+                </CardContent>
+              </Card>
+            </a>
+
+            {/* Telegram */}
+            <a href="https://t.me/jemil1456" target="_blank" className="group">
+              <Card className="hover:shadow-xl transition-all duration-300 border-0 h-full">
+                <CardContent className="pt-8 pb-6 text-center">
+                  <div className="w-16 h-16 rounded-2xl bg-blue-100 flex items-center justify-center mx-auto mb-4 group-hover:bg-blue-200 transition-colors">
+                    <MessageCircle className="h-8 w-8 text-blue-600" />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2">Telegram</h3>
+                  <p className="text-sm text-gray-500 mb-4">@jemil1456</p>
+                  <Badge className="bg-blue-100 text-blue-700 border-0">
+                    {language === 'en' ? 'Click to Chat' : 'ለማውራት ይጫኑ'}
+                  </Badge>
+                </CardContent>
+              </Card>
+            </a>
+
+            {/* Phone */}
+            <a href="tel:+251914600349" className="group">
+              <Card className="hover:shadow-xl transition-all duration-300 border-0 h-full">
+                <CardContent className="pt-8 pb-6 text-center">
+                  <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4 group-hover:bg-primary/20 transition-colors">
+                    <Phone className="h-8 w-8 text-primary" />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2">
+                    {language === 'en' ? 'Phone Call' : 'ስልክ ይደውሉ'}
+                  </h3>
+                  <p className="text-sm text-gray-500 mb-2">+251 91 460 0349</p>
+                  <p className="text-sm text-gray-500 mb-4">0914198090</p>
+                  <Badge className="bg-primary/10 text-primary border-0">
+                    {language === 'en' ? 'Click to Call' : 'ለመደወል ይጫኑ'}
+                  </Badge>
+                </CardContent>
+              </Card>
+            </a>
           </div>
         </div>
       </section>
@@ -443,12 +484,12 @@ export default function HomePage(): React.ReactNode {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">{t.readyToStart}</h2>
           <p className="text-white/80 text-lg mb-8">{t.readyDesc}</p>
-          <Link href="/apply">
+          <a href="https://wa.me/251914600349" target="_blank">
             <Button size="lg" className="bg-accent hover:bg-accent/90 text-white text-lg px-12 py-6 rounded-full shadow-xl">
               {t.getStarted}
               <ArrowRight className="h-5 w-5 ml-2" />
             </Button>
-          </Link>
+          </a>
         </div>
       </section>
 
@@ -456,7 +497,6 @@ export default function HomePage(): React.ReactNode {
       <footer id="contact" className="bg-gray-900 text-white pt-16 pb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
-            {/* About */}
             <div>
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
@@ -467,47 +507,50 @@ export default function HomePage(): React.ReactNode {
               <p className="text-gray-400 text-sm">{t.footerAbout}</p>
             </div>
 
-            {/* Quick Links */}
             <div>
               <h4 className="font-semibold mb-4">{t.quickLinks}</h4>
               <ul className="space-y-2 text-sm text-gray-400">
                 <li><Link href="/" className="hover:text-white transition-colors">{t.home}</Link></li>
                 <li><Link href="#courses" className="hover:text-white transition-colors">{t.courses}</Link></li>
                 <li><Link href="#about" className="hover:text-white transition-colors">{t.about}</Link></li>
-                <li><Link href="/apply" className="hover:text-white transition-colors">{t.tryFree}</Link></li>
+                <li><Link href="/login" className="hover:text-white transition-colors">{t.login}</Link></li>
               </ul>
             </div>
 
-            {/* Contact */}
             <div>
               <h4 className="font-semibold mb-4">{t.contactUs}</h4>
               <ul className="space-y-3 text-sm text-gray-400">
                 <li className="flex items-center gap-2">
-                  <Phone className="h-4 w-4" /> +123 456 7890
+                  <Phone className="h-4 w-4" /> +251 91 460 0349
                 </li>
                 <li className="flex items-center gap-2">
-                  <Mail className="h-4 w-4" /> info@daralhuda.com
+                  <Phone className="h-4 w-4" /> 0914198090
                 </li>
                 <li className="flex items-center gap-2">
-                  <MessageCircle className="h-4 w-4" /> WhatsApp: +123 456 7890
+                  <Mail className="h-4 w-4" /> mohammedjemal433@gmail.com
+                </li>
+                <li className="flex items-center gap-2">
+                  <MessageCircle className="h-4 w-4" /> @jemil1456
                 </li>
               </ul>
             </div>
 
-            {/* Follow Us */}
             <div>
               <h4 className="font-semibold mb-4">{t.followUs}</h4>
-              <div className="flex gap-3">
-                {['Facebook', 'Twitter', 'YouTube', 'Telegram'].map((social) => (
-                  <div key={social} className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-primary transition-colors cursor-pointer">
-                    <span className="text-xs">{social[0]}</span>
-                  </div>
-                ))}
+              <div className="space-y-2 text-sm text-gray-400">
+                <a href="https://t.me/+--kQbhPL5J-cyMzU0" target="_blank" className="flex items-center gap-2 hover:text-white transition-colors">
+                  <MessageCircle className="h-4 w-4" /> Telegram Group
+                </a>
+                <a href="https://t.me/jemil1456" target="_blank" className="flex items-center gap-2 hover:text-white transition-colors">
+                  <MessageCircle className="h-4 w-4" /> Telegram: @jemil1456
+                </a>
+                <a href="https://tiktok.com/@jemil123gc" target="_blank" className="flex items-center gap-2 hover:text-white transition-colors">
+                  <Users className="h-4 w-4" /> TikTok: @jemil123gc
+                </a>
               </div>
             </div>
           </div>
 
-          {/* Bottom Bar */}
           <div className="border-t border-gray-800 pt-8 text-center">
             <p className="text-gray-500 text-sm">
               © {new Date().getFullYear()} Dar Al Huda Academy. {t.rights}
@@ -516,7 +559,6 @@ export default function HomePage(): React.ReactNode {
         </div>
       </footer>
 
-      {/* Custom Animations */}
       <style jsx global>{`
         @keyframes blob {
           0% { transform: translate(0px, 0px) scale(1); }
@@ -524,15 +566,9 @@ export default function HomePage(): React.ReactNode {
           66% { transform: translate(-20px, 20px) scale(0.9); }
           100% { transform: translate(0px, 0px) scale(1); }
         }
-        .animate-blob {
-          animation: blob 7s infinite;
-        }
-        .animation-delay-2000 {
-          animation-delay: 2s;
-        }
-        .animation-delay-4000 {
-          animation-delay: 4s;
-        }
+        .animate-blob { animation: blob 7s infinite; }
+        .animation-delay-2000 { animation-delay: 2s; }
+        .animation-delay-4000 { animation-delay: 4s; }
       `}</style>
     </div>
   );

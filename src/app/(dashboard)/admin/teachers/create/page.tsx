@@ -8,10 +8,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-
 import { ArrowLeft, Save } from 'lucide-react';
 import Link from 'next/link';
 import { createTeacher } from '@/lib/action/teacher.actions';
+
 
 export default function CreateTeacherPage(): React.ReactNode {
   const router = useRouter();
@@ -31,21 +31,27 @@ export default function CreateTeacherPage(): React.ReactNode {
     setLoading(true);
     setError('');
 
-    const result = await createTeacher({
-      username: formData.username,
-      password: formData.password,
-      fullName: formData.fullName,
-      email: formData.email,
-      phone: formData.phone,
-      bio: formData.bio,
-    });
+    try {
+      const result = await createTeacher({
+        username: formData.username,
+        password: formData.password,
+        fullName: formData.fullName,
+        email: formData.email,
+        phone: formData.phone,
+        bio: formData.bio,
+      });
 
-    if (result.success) {
-      router.push('/admin/teachers');
-    } else {
-      setError(result.error || 'Failed to create teacher');
+      if (result.success) {
+        router.push('/admin/teachers');
+      } else {
+        setError(result.details || result.error || 'Failed to create teacher');
+      }
+    } catch (err) {
+      setError('Something went wrong. Please try again.');
+      console.error(err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   return (
