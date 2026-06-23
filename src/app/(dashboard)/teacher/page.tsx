@@ -1,6 +1,7 @@
 // src/app/(dashboard)/teacher/page.tsx
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { prisma } from '@/lib/prisma';
 import { 
   Users, 
@@ -10,6 +11,7 @@ import {
   Video,
   ArrowRight,
 } from 'lucide-react';
+import Link from 'next/link';
 
 async function getTeacherData(teacherId: string) {
   const teacher = await prisma.teacher.findUnique({
@@ -46,10 +48,32 @@ async function getTeacherData(teacherId: string) {
 }
 
 export default async function TeacherDashboardPage(): Promise<React.ReactNode> {
-  const teacherId = 'temp-teacher-id'; // TODO: Get from session
-  const { teacher, totalProgress } = await getTeacherData(teacherId);
+  // TODO: Get teacherId from session
+  // For now, get the first teacher from database
+  const firstTeacher = await prisma.teacher.findFirst({
+    orderBy: { createdAt: 'desc' },
+  });
 
-  if (!teacher) return <div>Teacher not found</div>;
+  if (!firstTeacher) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <p className="text-xl text-gray-500">No teacher found</p>
+          <p className="text-sm text-gray-400 mt-2">Please contact admin to create your account</p>
+        </div>
+      </div>
+    );
+  }
+
+  const { teacher, totalProgress } = await getTeacherData(firstTeacher.id);
+
+  if (!teacher) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p className="text-xl text-gray-500">Teacher not found</p>
+      </div>
+    );
+  }
 
   const today = new Date();
   const todaySessions = teacher.sessions.filter(s => {
@@ -127,6 +151,37 @@ export default async function TeacherDashboardPage(): Promise<React.ReactNode> {
             <p className="text-xs text-gray-500 mt-2">Scheduled sessions</p>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Quick Links */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <Link href="/teacher/students">
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer border-0 bg-gradient-to-br from-primary/5 to-primary/10">
+            <CardContent className="pt-6 text-center">
+              <Users className="h-8 w-8 text-primary mx-auto mb-2" />
+              <p className="font-semibold">My Students</p>
+              <p className="text-sm text-gray-500">View and manage</p>
+            </CardContent>
+          </Card>
+        </Link>
+        <Link href="/teacher/schedule">
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer border-0 bg-gradient-to-br from-accent/5 to-accent/10">
+            <CardContent className="pt-6 text-center">
+              <Calendar className="h-8 w-8 text-accent mx-auto mb-2" />
+              <p className="font-semibold">Schedule</p>
+              <p className="text-sm text-gray-500">Manage classes</p>
+            </CardContent>
+          </Card>
+        </Link>
+        <Link href={`/teacher/students/${teacher.students[0]?.id || ''}`}>
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer border-0 bg-gradient-to-br from-green-50 to-green-100">
+            <CardContent className="pt-6 text-center">
+              <BookOpen className="h-8 w-8 text-green-600 mx-auto mb-2" />
+              <p className="font-semibold">Add Progress</p>
+              <p className="text-sm text-gray-500">Update students</p>
+            </CardContent>
+          </Card>
+        </Link>
       </div>
 
       {/* Today's Schedule */}

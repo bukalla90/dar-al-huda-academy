@@ -2,7 +2,6 @@
   "name": "dar-al-huda-academy",
   "version": "0.1.0",
   "private": true,
-  
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -14,6 +13,7 @@
     "db:studio": "prisma studio"
   },
   "dependencies": {
+    "@jitsi/react-sdk": "^1.4.4",
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
     "@radix-ui/react-avatar": "^1.2.0",

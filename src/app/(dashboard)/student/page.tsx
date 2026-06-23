@@ -1,4 +1,7 @@
 // src/app/(dashboard)/student/page.tsx
+'use client';
+
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -7,7 +10,6 @@ import {
   Star, 
   GraduationCap, 
   Calendar, 
-  Clock, 
   Video,
   TrendingUp,
   Download,
@@ -16,74 +18,88 @@ import {
   Image,
   User,
   Phone,
-  MapPin,
 } from 'lucide-react';
-import { prisma } from '@/lib/prisma';
+import { JitsiMeetingComponent } from '@/components/jitsi/jitsi-meeting';
 
-async function getStudentData(studentId: string) {
-  const student = await prisma.student.findUnique({
-    where: { id: studentId },
-    include: {
-      user: {
-        select: {
-          id: true,
-          username: true,
-          isActive: true,
-        },
-      },
-      teacher: {
-        select: {
-          id: true,
-          fullName: true,
-          email: true,
-          phone: true,
-        },
-      },
-      progress: {
-        orderBy: { createdAt: 'desc' },
-        take: 10,
-        include: {
-          teacher: {
-            select: { fullName: true },
-          },
-        },
-      },
-      sessions: {
-        where: {
-          scheduledAt: { gte: new Date() },
-          status: 'SCHEDULED',
-        },
-        orderBy: { scheduledAt: 'asc' },
-        take: 5,
-      },
-      payments: {
-        orderBy: { month: 'desc' },
-        take: 3,
-      },
-      materials: {
-        orderBy: { createdAt: 'desc' },
-        take: 10,
-      },
-    },
-  });
-
-  const generalMaterials = await prisma.material.findMany({
-    where: { studentId: null },
-    orderBy: { createdAt: 'desc' },
-    take: 5,
-  });
-
-  return { student, generalMaterials };
+interface StudentData {
+  fullName: string;
+  courseType: string;
+  user: { isActive: boolean };
+  teacher: { fullName: string; phone: string } | null;
+  progress: Array<{
+    id: string;
+    surah: string;
+    ayahFrom: number;
+    ayahTo: number;
+    score: number;
+    notes: string;
+    createdAt: Date;
+    teacher: { fullName: string };
+  }>;
+  sessions: Array<{
+    id: string;
+    scheduledAt: Date;
+    meetingUrl: string;
+    status: string;
+  }>;
+  payments: Array<{
+    id: string;
+    month: string;
+    amount: number;
+    status: string;
+  }>;
+  materials: Array<{
+    id: string;
+    title: string;
+    fileUrl: string;
+    type: string;
+  }>;
 }
 
-export default async function StudentDashboardPage(): Promise<React.ReactNode> {
-  const studentId = 'temp-student-id';
-  const { student, generalMaterials } = await getStudentData(studentId);
+interface ActiveMeeting {
+  roomName: string;
+  userName: string;
+}
+
+export default function StudentDashboardPage(): React.ReactNode {
+  const [student, setStudent] = useState<StudentData | null>(null);
+  const [generalMaterials, setGeneralMaterials] = useState<Array<{ id: string; title: string; fileUrl: string; type: string }>>([]);
+  const [activeMeeting, setActiveMeeting] = useState<ActiveMeeting | null>(null);
+
+  const loadData = useCallback(async (): Promise<void> => {
+    console.log('Loading student data...');
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  function joinMeeting(meetingUrl: string): void {
+    const roomName = meetingUrl.replace('https://meet.jit.si/', '');
+    setActiveMeeting({ 
+      roomName: roomName, 
+      userName: student?.fullName || 'Student' 
+    });
+  }
+
+  function closeMeeting(): void {
+    setActiveMeeting(null);
+  }
+
+  if (activeMeeting) {
+    return (
+      <JitsiMeetingComponent
+        roomName={activeMeeting.roomName}
+        userName={activeMeeting.userName}
+        onClose={closeMeeting}
+      />
+    );
+  }
 
   if (!student) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <p>Student not found</p>
+        <p>Loading...</p>
       </div>
     );
   }
@@ -152,7 +168,7 @@ export default async function StudentDashboardPage(): Promise<React.ReactNode> {
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Content - Left Side */}
+        {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
           {/* My Teacher */}
           {student.teacher && (
@@ -212,12 +228,14 @@ export default async function StudentDashboardPage(): Promise<React.ReactNode> {
                         </div>
                       </div>
                       {session.meetingUrl && (
-                        <a href={session.meetingUrl} target="_blank">
-                          <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
-                            <Video className="h-4 w-4 mr-2" />
-                            Join Class
-                          </Button>
-                        </a>
+                        <Button 
+                          size="sm" 
+                          className="bg-blue-600 hover:bg-blue-700"
+                          onClick={() => joinMeeting(session.meetingUrl)}
+                        >
+                          <Video className="h-4 w-4 mr-2" />
+                          Join Class
+                        </Button>
                       )}
                     </div>
                   ))}
@@ -270,14 +288,13 @@ export default async function StudentDashboardPage(): Promise<React.ReactNode> {
                 <div className="p-8 text-center text-gray-500">
                   <BookOpen className="h-12 w-12 mx-auto mb-3 text-gray-300" />
                   <p>No progress records yet</p>
-                  <p className="text-sm">Your teacher will update your progress after each class</p>
                 </div>
               )}
             </CardContent>
           </Card>
         </div>
 
-        {/* Sidebar - Right Side */}
+        {/* Sidebar */}
         <div className="space-y-4">
           {/* Payment Status */}
           <Card className="shadow-lg border-0">
@@ -381,16 +398,6 @@ export default async function StudentDashboardPage(): Promise<React.ReactNode> {
                 <BookOpen className="h-8 w-8 mx-auto mb-2 text-white/80" />
                 <p className="text-white/80 text-sm">My Course</p>
                 <p className="text-xl font-bold mt-1">{student.courseType.replace(/_/g, ' ')}</p>
-                <div className="flex justify-center gap-4 mt-4 text-sm text-white/80">
-                  <div>
-                    <p className="font-bold">{student.progress.length}</p>
-                    <p>Records</p>
-                  </div>
-                  <div>
-                    <p className="font-bold">{student.sessions.length}</p>
-                    <p>Classes</p>
-                  </div>
-                </div>
               </div>
             </CardContent>
           </Card>

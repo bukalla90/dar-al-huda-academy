@@ -1,7 +1,7 @@
 // src/app/(dashboard)/teacher/schedule/page.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,15 +14,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { 
-  Video, 
-  Plus, 
-  Calendar, 
-  Clock, 
-  Users,
-  X,
-} from 'lucide-react';
+import { Video, Plus, Calendar, Clock, X } from 'lucide-react';
 import { getTeacherSessions, getTeacherStudents, createClassSession } from '@/lib/action/class.action';
+import { JitsiMeetingComponent } from '@/components/jitsi/jitsi-meeting';
 
 interface SessionType {
   id: string;
@@ -41,6 +35,11 @@ interface StudentOption {
   courseType: string;
 }
 
+interface ActiveMeeting {
+  roomName: string;
+  userName: string;
+}
+
 export default function TeacherSchedulePage(): React.ReactNode {
   const [showForm, setShowForm] = useState<boolean>(false);
   const [studentId, setStudentId] = useState<string>('');
@@ -51,13 +50,10 @@ export default function TeacherSchedulePage(): React.ReactNode {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
   const [success, setSuccess] = useState<string>('');
+  const [activeMeeting, setActiveMeeting] = useState<ActiveMeeting | null>(null);
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  async function loadData(): Promise<void> {
-    const teacherId = 'temp-teacher-id'; // TODO: Get from session
+  const loadData = useCallback(async (): Promise<void> => {
+    const teacherId = 'temp-teacher-id';
     
     const [sessionsResult, studentsResult] = await Promise.all([
       getTeacherSessions(teacherId),
@@ -71,7 +67,11 @@ export default function TeacherSchedulePage(): React.ReactNode {
     if (studentsResult.success && studentsResult.students) {
       setStudents(studentsResult.students);
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   async function handleCreateSession(): Promise<void> {
     if (!studentId || !date || !time) {
@@ -83,26 +83,34 @@ export default function TeacherSchedulePage(): React.ReactNode {
     setError('');
 
     const result = await createClassSession({
-      teacherId: 'temp-teacher-id', // TODO: Get from session
+      teacherId: 'temp-teacher-id',
       studentId,
       date,
       time,
     });
 
     if (result.success) {
-      setSuccess(`Meeting link created!`);
+      setSuccess('Meeting link created!');
       setStudentId('');
       setDate('');
       setTime('');
       setShowForm(false);
       loadData();
-      
       setTimeout(() => setSuccess(''), 3000);
     } else {
       setError(result.error || 'Failed to create session');
     }
 
     setLoading(false);
+  }
+
+  function joinMeeting(meetingUrl: string, studentName: string): void {
+    const roomName = meetingUrl.replace('https://meet.jit.si/', '');
+    setActiveMeeting({ roomName, userName: studentName });
+  }
+
+  function closeMeeting(): void {
+    setActiveMeeting(null);
   }
 
   const morningSessions = sessions.filter((s) => {
@@ -114,6 +122,16 @@ export default function TeacherSchedulePage(): React.ReactNode {
     const hour = new Date(s.scheduledAt).getHours();
     return hour >= 12;
   });
+
+  if (activeMeeting) {
+    return (
+      <JitsiMeetingComponent
+        roomName={activeMeeting.roomName}
+        userName={activeMeeting.userName}
+        onClose={closeMeeting}
+      />
+    );
+  }
 
   return (
     <div className="space-y-6 pb-20 lg:pb-0">
@@ -128,7 +146,6 @@ export default function TeacherSchedulePage(): React.ReactNode {
         </Button>
       </div>
 
-      {/* Success/Error Messages */}
       {success && (
         <div className="bg-green-50 text-green-600 p-4 rounded-xl text-sm">{success}</div>
       )}
@@ -136,7 +153,6 @@ export default function TeacherSchedulePage(): React.ReactNode {
         <div className="bg-red-50 text-red-600 p-4 rounded-xl text-sm">{error}</div>
       )}
 
-      {/* Create Form */}
       {showForm && (
         <Card className="border-2 border-primary/20">
           <CardHeader className="flex flex-row items-center justify-between">
@@ -168,26 +184,14 @@ export default function TeacherSchedulePage(): React.ReactNode {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label>Date</Label>
-                  <Input 
-                    type="date" 
-                    value={date} 
-                    onChange={(e) => setDate(e.target.value)} 
-                  />
+                  <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
                 </div>
                 <div>
                   <Label>Time</Label>
-                  <Input 
-                    type="time" 
-                    value={time} 
-                    onChange={(e) => setTime(e.target.value)} 
-                  />
+                  <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
                 </div>
               </div>
-              <Button 
-                onClick={handleCreateSession} 
-                disabled={loading}
-                className="w-full bg-primary"
-              >
+              <Button onClick={handleCreateSession} disabled={loading} className="w-full bg-primary">
                 {loading ? 'Creating...' : 'Generate Meeting Link & Save'}
               </Button>
             </div>
@@ -195,7 +199,6 @@ export default function TeacherSchedulePage(): React.ReactNode {
         </Card>
       )}
 
-      {/* Morning Sessions */}
       <Card>
         <CardHeader className="border-b bg-gradient-to-r from-amber-50 to-yellow-50">
           <CardTitle className="flex items-center gap-2 text-lg">
@@ -222,12 +225,14 @@ export default function TeacherSchedulePage(): React.ReactNode {
                   </div>
                   <div className="flex items-center gap-3">
                     <Badge variant="success">Scheduled</Badge>
-                    <a href={session.meetingUrl} target="_blank">
-                      <Button size="sm" className="bg-primary">
-                        <Video className="h-4 w-4 mr-1" />
-                        Join
-                      </Button>
-                    </a>
+                    <Button 
+                      size="sm" 
+                      className="bg-primary"
+                      onClick={() => joinMeeting(session.meetingUrl, session.student.fullName)}
+                    >
+                      <Video className="h-4 w-4 mr-1" />
+                      Join
+                    </Button>
                   </div>
                 </div>
               ))}
@@ -238,7 +243,6 @@ export default function TeacherSchedulePage(): React.ReactNode {
         </CardContent>
       </Card>
 
-      {/* Afternoon Sessions */}
       <Card>
         <CardHeader className="border-b bg-gradient-to-r from-blue-50 to-indigo-50">
           <CardTitle className="flex items-center gap-2 text-lg">
@@ -265,12 +269,14 @@ export default function TeacherSchedulePage(): React.ReactNode {
                   </div>
                   <div className="flex items-center gap-3">
                     <Badge variant="success">Scheduled</Badge>
-                    <a href={session.meetingUrl} target="_blank">
-                      <Button size="sm" className="bg-primary">
-                        <Video className="h-4 w-4 mr-1" />
-                        Join
-                      </Button>
-                    </a>
+                    <Button 
+                      size="sm" 
+                      className="bg-primary"
+                      onClick={() => joinMeeting(session.meetingUrl, session.student.fullName)}
+                    >
+                      <Video className="h-4 w-4 mr-1" />
+                      Join
+                    </Button>
                   </div>
                 </div>
               ))}
