@@ -21,22 +21,7 @@ export const metadata: Metadata = {
     default: "Dar Al Huda Online Quran Academy",
     template: "%s - Dar Al Huda",
   },
-  description: "Learn Quran online with qualified teachers. Tajweed, Hifz, Arabic Reading, and Islamic Studies for students worldwide.",
-  keywords: ["Quran", "online learning", "Tajweed", "Hifz", "Islamic studies", "Arabic", "Quran academy"],
-  authors: [{ name: "Dar Al Huda Academy" }],
-  creator: "Dar Al Huda Academy",
-  openGraph: {
-    type: "website",
-    locale: "en_US",
-    url: "https://daralhuda.com",
-    siteName: "Dar Al Huda Online Quran Academy",
-    title: "Dar Al Huda Online Quran Academy",
-    description: "Learn Quran online with qualified teachers. Tajweed, Hifz, Arabic Reading, and Islamic Studies.",
-  },
-  icons: {
-    icon: "/favicon.ico",
-    apple: "/apple-icon.png",
-  },
+  description: "Learn Quran online with qualified teachers.",
 };
 
 export default function RootLayout({
@@ -48,6 +33,8 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${inter.variable} ${notoNaskhArabic.variable} h-full antialiased`}
+      // ADD THIS - fixes the scroll-behavior warning
+      data-scroll-behavior="smooth"
       suppressHydrationWarning
     >
       <head>

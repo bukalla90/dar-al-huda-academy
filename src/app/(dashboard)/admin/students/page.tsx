@@ -26,115 +26,45 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-
-import { getRoleBadgeColor, getPaymentStatusColor } from '@/lib/utils';
+import { getStudentsPaginated } from '@/lib/action/student.actions';
+import { getPaymentStatusColor } from '@/lib/utils';
 import { 
   Plus, 
   Search, 
   MoreVertical, 
-  Edit, 
-  Trash2, 
-  Power, 
   Eye,
   UserPlus,
   Users,
   BookOpen,
   Filter,
-  Download,
 } from 'lucide-react';
-import { getAllTeachers, getStudentsPaginated } from '@/lib/action/student.actions';
-import type { StudentWithRelations } from '@/lib/action/student.actions';
 
-
-// Mobile Student Card Component
-function MobileStudentCard({ student }: { student: StudentWithRelations }): JSX.Element {
-  const lastPayment = student.payments[0];
-
-  return (
-    <Card className="mb-4">
-      <CardContent className="pt-4">
-        <div className="flex justify-between items-start mb-3">
-          <div className="flex-1">
-            <h3 className="font-semibold text-text">{student.fullName}</h3>
-            <p className="text-sm text-gray-500">{student.country}</p>
-          </div>
-          <Badge className={getRoleBadgeColor('STUDENT')}>
-            {student.user.isActive ? 'Active' : 'Inactive'}
-          </Badge>
-        </div>
-
-        <div className="space-y-2 text-sm">
-          <div className="flex justify-between">
-            <span className="text-gray-500">Course:</span>
-            <span className="font-medium">{student.courseType.replace(/_/g, ' ')}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-500">Teacher:</span>
-            <span className="font-medium">{student.teacher?.fullName || 'Unassigned'}</span>
-          </div>
-          {lastPayment && (
-            <div className="flex justify-between">
-              <span className="text-gray-500">Payment:</span>
-              <Badge className={getPaymentStatusColor(lastPayment.status as 'PAID' | 'UNPAID' | 'PARTIAL' | 'OVERDUE')}>
-                {lastPayment.status}
-              </Badge>
-            </div>
-          )}
-        </div>
-
-        <div className="flex justify-end gap-2 mt-4 pt-3 border-t">
-          <Link href={`/admin/students/${student.id}`}>
-            <Button variant="ghost" size="sm">
-              <Eye className="h-4 w-4 mr-1" />
-              View
-            </Button>
-          </Link>
-          <Link href={`/admin/students/${student.id}/edit`}>
-            <Button variant="ghost" size="sm">
-              <Edit className="h-4 w-4 mr-1" />
-              Edit
-            </Button>
-          </Link>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-// Main Students Page
 export default async function StudentsPage({
   searchParams,
 }: {
   searchParams: { page?: string; search?: string; course?: string; status?: string };
-}): Promise<JSX.Element> {
+}): Promise<React.ReactNode> {
   const page = Number(searchParams.page) || 1;
   const search = searchParams.search || '';
   const course = searchParams.course || '';
   const status = searchParams.status || '';
 
-  const [studentsResult, teachersResult] = await Promise.all([
-    getStudentsPaginated(page, 10, {
-      search: search || undefined,
-      courseType: course || undefined,
-      status: (status as 'active' | 'inactive') || undefined,
-    }),
-    getAllTeachers(),
-  ]);
+  const result = await getStudentsPaginated(page, 10, {
+    search: search || undefined,
+    courseType: course || undefined,
+    status: (status as 'active' | 'inactive') || undefined,
+  });
 
-  const data = studentsResult.success ? studentsResult.data : null;
-  const teachers = teachersResult.success ? teachersResult.teachers : [];
+  const data = result.success ? result.data : null;
+  const students = data?.students || [];
 
   return (
     <div className="space-y-6 pb-20 lg:pb-0">
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-text">
-            Students
-          </h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Manage all students at Dar Al Huda Academy
-          </p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-text">Students</h1>
+          <p className="text-sm text-gray-500 mt-1">Manage all students at Dar Al Huda Academy</p>
         </div>
         <Link href="/admin/students/create">
           <Button className="bg-primary hover:bg-primary/90 w-full sm:w-auto">
@@ -162,7 +92,7 @@ export default async function StudentsPage({
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {data?.students.filter(s => s.user.isActive).length || 0}
+              {students.filter(s => s.user.isActive).length || 0}
             </div>
           </CardContent>
         </Card>
@@ -173,7 +103,7 @@ export default async function StudentsPage({
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {data?.students.filter(s => !s.teacher).length || 0}
+              {students.filter(s => !s.teacher).length || 0}
             </div>
           </CardContent>
         </Card>
@@ -225,126 +155,154 @@ export default async function StudentsPage({
         </form>
       </div>
 
-      {/* Students List */}
-      <Suspense fallback={<div>Loading...</div>}>
-        {/* Mobile View */}
-        <div className="block lg:hidden">
-          {data?.students.map((student) => (
-            <MobileStudentCard key={student.id} student={student} />
-          ))}
-          {data?.students.length === 0 && (
-            <div className="text-center py-12">
-              <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900">No students found</h3>
-              <p className="text-gray-500 mt-1">Get started by adding a new student.</p>
-            </div>
-          )}
-        </div>
+      {/* Mobile Cards */}
+      <div className="block lg:hidden space-y-3">
+        {students.map((student) => {
+          const lastPayment = student.payments[0];
+          return (
+            <Card key={student.id} className="mb-3">
+              <CardContent className="pt-4">
+                <div className="flex justify-between items-start mb-3">
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-text">{student.fullName}</h3>
+                    <p className="text-sm text-gray-500">{student.country}</p>
+                  </div>
+                  <Badge variant={student.user.isActive ? 'success' : 'secondary'}>
+                    {student.user.isActive ? 'Active' : 'Inactive'}
+                  </Badge>
+                </div>
 
-        {/* Desktop View */}
-        <div className="hidden lg:block">
-          <Card>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Student</TableHead>
-                    <TableHead>Course</TableHead>
-                    <TableHead>Teacher</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Payment</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {data?.students.map((student) => (
-                    <TableRow key={student.id}>
-                      <TableCell>
-                        <div>
-                          <p className="font-medium text-text">{student.fullName}</p>
-                          <p className="text-sm text-gray-500">{student.country}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">
-                          {student.courseType.replace(/_/g, ' ')}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{student.teacher?.fullName || 'Unassigned'}</TableCell>
-                      <TableCell>
-                        <Badge className={getRoleBadgeColor('STUDENT')}>
-                          {student.user.isActive ? 'Active' : 'Inactive'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {student.payments[0] ? (
-                          <Badge className={getPaymentStatusColor(
-                            student.payments[0].status as 'PAID' | 'UNPAID' | 'PARTIAL' | 'OVERDUE'
-                          )}>
-                            {student.payments[0].status}
-                          </Badge>
-                        ) : (
-                          <span className="text-gray-400">No payments</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem asChild>
-                              <Link href={`/admin/students/${student.id}`}>
-                                <Eye className="h-4 w-4 mr-2" />
-                                View Details
-                              </Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem asChild>
-                              <Link href={`/admin/students/${student.id}/edit`}>
-                                <Edit className="h-4 w-4 mr-2" />
-                                Edit
-                              </Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <Power className="h-4 w-4 mr-2" />
-                              {student.user.isActive ? 'Deactivate' : 'Activate'}
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="text-red-600">
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </div>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Course:</span>
+                    <span className="font-medium">{student.courseType.replace(/_/g, ' ')}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Teacher:</span>
+                    <span className="font-medium">{student.teacher?.fullName || 'Unassigned'}</span>
+                  </div>
+                  {lastPayment && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Payment:</span>
+                      <Badge className={getPaymentStatusColor(lastPayment.status as 'PAID' | 'UNPAID' | 'PARTIAL' | 'OVERDUE')}>
+                        {lastPayment.status}
+                      </Badge>
+                    </div>
+                  )}
+                </div>
 
-        {/* Pagination */}
-        {data && data.totalPages > 1 && (
-          <div className="flex justify-center gap-2">
-            {Array.from({ length: data.totalPages }, (_, i) => i + 1).map((pageNum) => (
-              <Link
-                key={pageNum}
-                href={`/admin/students?page=${pageNum}${search ? `&search=${search}` : ''}${course ? `&course=${course}` : ''}${status ? `&status=${status}` : ''}`}
-              >
-                <Button
-                  variant={pageNum === data.currentPage ? 'default' : 'outline'}
-                  size="sm"
-                >
-                  {pageNum}
-                </Button>
-              </Link>
-            ))}
+                <div className="flex justify-end mt-4 pt-3 border-t">
+                  {/* FIXED: Changed from /edit to just /studentId */}
+                  <Link href={`/admin/students/${student.id}`}>
+                    <Button variant="ghost" size="sm">
+                      <Eye className="h-4 w-4 mr-1" />
+                      View
+                    </Button>
+                  </Link>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+        {students.length === 0 && (
+          <div className="text-center py-12">
+            <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900">No students found</h3>
+            <p className="text-gray-500 mt-1">Get started by adding a new student.</p>
           </div>
         )}
-      </Suspense>
+      </div>
+
+      {/* Desktop Table */}
+      <div className="hidden lg:block">
+        <Card>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Student</TableHead>
+                  <TableHead>Course</TableHead>
+                  <TableHead>Teacher</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Payment</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {students.map((student) => (
+                  <TableRow key={student.id}>
+                    <TableCell>
+                      <div>
+                        <p className="font-medium text-text">{student.fullName}</p>
+                        <p className="text-sm text-gray-500">{student.country}</p>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline">
+                        {student.courseType.replace(/_/g, ' ')}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{student.teacher?.fullName || 'Unassigned'}</TableCell>
+                    <TableCell>
+                      <Badge variant={student.user.isActive ? 'success' : 'secondary'}>
+                        {student.user.isActive ? 'Active' : 'Inactive'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {student.payments[0] ? (
+                        <Badge className={getPaymentStatusColor(
+                          student.payments[0].status as 'PAID' | 'UNPAID' | 'PARTIAL' | 'OVERDUE'
+                        )}>
+                          {student.payments[0].status}
+                        </Badge>
+                      ) : (
+                        <span className="text-gray-400">No payments</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          {/* FIXED: Changed from /edit to just /studentId */}
+                          <DropdownMenuItem asChild>
+                            <Link href={`/admin/students/${student.id}`}>
+                              <Eye className="h-4 w-4 mr-2" />
+                              View Details
+                            </Link>
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Pagination */}
+      {data && data.totalPages > 1 && (
+        <div className="flex justify-center gap-2">
+          {Array.from({ length: data.totalPages }, (_, i) => i + 1).map((pageNum) => (
+            <Link
+              key={pageNum}
+              href={`/admin/students?page=${pageNum}${search ? `&search=${search}` : ''}${course ? `&course=${course}` : ''}${status ? `&status=${status}` : ''}`}
+            >
+              <Button
+                variant={pageNum === data.currentPage ? 'default' : 'outline'}
+                size="sm"
+              >
+                {pageNum}
+              </Button>
+            </Link>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

@@ -14,10 +14,9 @@ function createPrismaClient(): PrismaClient {
 
   return new PrismaClient({
     adapter,
-    log:
-      process.env.NODE_ENV === "development"
-        ? ["query", "error", "warn"]
-        : ["error"],
+    // REMOVED query logging - it was making the app extremely slow
+    // Only log errors
+    log: ["error"],
   });
 }
 

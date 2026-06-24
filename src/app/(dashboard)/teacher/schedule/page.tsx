@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Video, Plus, Calendar, Clock, X } from 'lucide-react';
+import { Video, Plus, Calendar, Clock, X, Loader2 } from 'lucide-react';
 import { getTeacherSessions, getTeacherStudents, createClassSession } from '@/lib/action/class.action';
 import { JitsiMeetingComponent } from '@/components/jitsi/jitsi-meeting';
 
@@ -48,16 +48,33 @@ export default function TeacherSchedulePage(): React.ReactNode {
   const [sessions, setSessions] = useState<SessionType[]>([]);
   const [students, setStudents] = useState<StudentOption[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
+  const [pageLoading, setPageLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
   const [success, setSuccess] = useState<string>('');
   const [activeMeeting, setActiveMeeting] = useState<ActiveMeeting | null>(null);
+  const [teacherId, setTeacherId] = useState<string>('');
+
+  // Get teacherId from cookie
+  function getTeacherIdFromCookie(): string {
+    const cookies = document.cookie.split('; ');
+    const teacherCookie = cookies.find(row => row.startsWith('teacherId='));
+    return teacherCookie ? teacherCookie.split('=')[1] : '';
+  }
 
   const loadData = useCallback(async (): Promise<void> => {
-    const teacherId = 'temp-teacher-id';
+    const tid = getTeacherIdFromCookie();
+    
+    if (!tid) {
+      setPageLoading(false);
+      setError('Teacher ID not found. Please login again.');
+      return;
+    }
+
+    setTeacherId(tid);
     
     const [sessionsResult, studentsResult] = await Promise.all([
-      getTeacherSessions(teacherId),
-      getTeacherStudents(teacherId),
+      getTeacherSessions(tid),
+      getTeacherStudents(tid),
     ]);
 
     if (sessionsResult.success && sessionsResult.sessions) {
@@ -67,6 +84,8 @@ export default function TeacherSchedulePage(): React.ReactNode {
     if (studentsResult.success && studentsResult.students) {
       setStudents(studentsResult.students);
     }
+
+    setPageLoading(false);
   }, []);
 
   useEffect(() => {
@@ -83,7 +102,7 @@ export default function TeacherSchedulePage(): React.ReactNode {
     setError('');
 
     const result = await createClassSession({
-      teacherId: 'temp-teacher-id',
+      teacherId,
       studentId,
       date,
       time,
@@ -133,6 +152,17 @@ export default function TeacherSchedulePage(): React.ReactNode {
     );
   }
 
+  if (pageLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-gray-500">Loading schedule...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 pb-20 lg:pb-0">
       <div className="flex justify-between items-center">
@@ -170,16 +200,27 @@ export default function TeacherSchedulePage(): React.ReactNode {
                 <Label>Select Student</Label>
                 <Select value={studentId} onValueChange={setStudentId}>
                   <SelectTrigger className="bg-white">
-                    <SelectValue placeholder="Choose student" />
+                    <SelectValue placeholder={students.length === 0 ? 'No students assigned' : 'Choose student'} />
                   </SelectTrigger>
                   <SelectContent>
-                    {students.map((student) => (
-                      <SelectItem key={student.id} value={student.id}>
-                        {student.fullName} - {student.courseType.replace(/_/g, ' ')}
-                      </SelectItem>
-                    ))}
+                    {students.length === 0 ? (
+                      <div className="p-2 text-sm text-gray-500 text-center">
+                        No students assigned to you yet
+                      </div>
+                    ) : (
+                      students.map((student) => (
+                        <SelectItem key={student.id} value={student.id}>
+                          {student.fullName} - {student.courseType.replace(/_/g, ' ')}
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
+                {students.length === 0 && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Admin needs to assign students to you first
+                  </p>
+                )}
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -191,7 +232,11 @@ export default function TeacherSchedulePage(): React.ReactNode {
                   <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
                 </div>
               </div>
-              <Button onClick={handleCreateSession} disabled={loading} className="w-full bg-primary">
+              <Button 
+                onClick={handleCreateSession} 
+                disabled={loading || students.length === 0} 
+                className="w-full bg-primary"
+              >
                 {loading ? 'Creating...' : 'Generate Meeting Link & Save'}
               </Button>
             </div>

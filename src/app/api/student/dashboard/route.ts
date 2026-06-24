@@ -1,24 +1,26 @@
 // src/app/api/student/dashboard/route.ts
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { cookies } from 'next/headers';
 
 export async function GET(): Promise<NextResponse> {
   try {
-    const student = await prisma.student.findFirst({
-      orderBy: { createdAt: 'desc' },
+    const cookieStore = await cookies();
+    const studentId = cookieStore.get('studentId')?.value;
+
+    if (!studentId) {
+      return NextResponse.json({ success: false, error: 'Not authenticated' }, { status: 401 });
+    }
+
+    const student = await prisma.student.findUnique({
+      where: { id: studentId },
       include: {
-        user: {
-          select: { id: true, username: true, isActive: true },
-        },
-        teacher: {
-          select: { id: true, fullName: true, phone: true, email: true },
-        },
+        user: { select: { id: true, username: true, isActive: true } },
+        teacher: { select: { id: true, fullName: true, phone: true, email: true } },
         progress: {
           orderBy: { createdAt: 'desc' },
           take: 10,
-          include: {
-            teacher: { select: { fullName: true } },
-          },
+          include: { teacher: { select: { fullName: true } } },
         },
         sessions: {
           where: { scheduledAt: { gte: new Date() }, status: 'SCHEDULED' },
@@ -48,6 +50,7 @@ export async function GET(): Promise<NextResponse> {
 
     return NextResponse.json({ success: true, student, generalMaterials });
   } catch (error) {
+    console.error('Dashboard API error:', error);
     return NextResponse.json({ success: false, error: 'Failed to fetch data' }, { status: 500 });
   }
 }

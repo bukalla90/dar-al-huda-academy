@@ -65,11 +65,7 @@ const adminNavItems: NavItem[] = [
       },
     ],
   },
-  {
-    title: 'Applications',
-    href: '/admin/applications',
-    icon: ClipboardList,
-  },
+  
   {
     title: 'Payments',
     href: '/admin/payments',

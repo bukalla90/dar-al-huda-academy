@@ -116,7 +116,6 @@ export default function HomePage(): React.ReactNode {
     { group: 'Group 6', time: '3:00 AM – 5:00 AM' },
   ];
 
-  // Clean course titles - remove brackets for English
   function getCleanTitle(course: typeof courses[0]): string {
     if (language === 'en') {
       return course.titleEn.replace(/\s*\(.*?\)\s*/g, '').trim();
@@ -343,7 +342,6 @@ export default function HomePage(): React.ReactNode {
             <h2 className="text-3xl sm:text-4xl font-bold text-text mb-4">{t.ourCourses}</h2>
           </div>
 
-          {/* Quran Programs */}
           <div className="mb-16">
             <h3 className="text-2xl font-bold text-text mb-8 flex items-center gap-2">
               <BookOpen className="h-6 w-6 text-primary" />
@@ -369,7 +367,6 @@ export default function HomePage(): React.ReactNode {
             </div>
           </div>
 
-          {/* Islamic Studies */}
           <div>
             <h3 className="text-2xl font-bold text-text mb-8 flex items-center gap-2">
               <Star className="h-6 w-6 text-accent" />
@@ -425,7 +422,6 @@ export default function HomePage(): React.ReactNode {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-4xl mx-auto">
-            {/* WhatsApp */}
             <a href="https://wa.me/251914600349" target="_blank" className="group">
               <Card className="hover:shadow-xl transition-all duration-300 border-0 h-full">
                 <CardContent className="pt-8 pb-6 text-center">
@@ -441,7 +437,6 @@ export default function HomePage(): React.ReactNode {
               </Card>
             </a>
 
-            {/* Telegram */}
             <a href="https://t.me/jemil1456" target="_blank" className="group">
               <Card className="hover:shadow-xl transition-all duration-300 border-0 h-full">
                 <CardContent className="pt-8 pb-6 text-center">
@@ -457,7 +452,6 @@ export default function HomePage(): React.ReactNode {
               </Card>
             </a>
 
-            {/* Phone */}
             <a href="tel:+251914600349" className="group">
               <Card className="hover:shadow-xl transition-all duration-300 border-0 h-full">
                 <CardContent className="pt-8 pb-6 text-center">
@@ -559,6 +553,7 @@ export default function HomePage(): React.ReactNode {
         </div>
       </footer>
 
+      {/* REMOVED: scroll-behavior: smooth from style tag */}
       <style jsx global>{`
         @keyframes blob {
           0% { transform: translate(0px, 0px) scale(1); }
