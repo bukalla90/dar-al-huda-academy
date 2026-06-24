@@ -1,8 +1,8 @@
 // src/app/(dashboard)/teacher/page.tsx
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { prisma } from '@/lib/prisma';
+import { getLoggedInUser } from '@/lib/auth';
 import { 
   Users, 
   Calendar, 
@@ -12,16 +12,21 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 
-async function getTeacherData(teacherId: string) {
+export default async function TeacherDashboardPage(): Promise<React.ReactNode> {
+  const user = await getLoggedInUser();
+  
+  if (!user || user.userRole !== 'TEACHER') {
+    redirect('/login');
+  }
+
   const teacher = await prisma.teacher.findUnique({
-    where: { id: teacherId },
+    where: { id: user.teacherId },
     include: {
       students: {
         include: {
-          user: {
-            select: { isActive: true },
-          },
+          user: { select: { isActive: true } },
         },
       },
       sessions: {
@@ -30,9 +35,7 @@ async function getTeacherData(teacherId: string) {
           status: 'SCHEDULED',
         },
         include: {
-          student: {
-            select: { fullName: true },
-          },
+          student: { select: { fullName: true } },
         },
         orderBy: { scheduledAt: 'asc' },
         take: 10,
@@ -40,40 +43,21 @@ async function getTeacherData(teacherId: string) {
     },
   });
 
-  const totalProgress = await prisma.studentProgress.count({
-    where: { teacherId },
-  });
-
-  return { teacher, totalProgress };
-}
-
-export default async function TeacherDashboardPage(): Promise<React.ReactNode> {
-  // TODO: Get teacherId from session
-  // For now, get the first teacher from database
-  const firstTeacher = await prisma.teacher.findFirst({
-    orderBy: { createdAt: 'desc' },
-  });
-
-  if (!firstTeacher) {
+  if (!teacher) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <p className="text-xl text-gray-500">No teacher found</p>
-          <p className="text-sm text-gray-400 mt-2">Please contact admin to create your account</p>
+          <p className="text-xl text-gray-500">Teacher profile not found</p>
+          <p className="text-sm text-gray-400 mt-2">Please contact admin</p>
+          <Link href="/login" className="text-primary hover:underline mt-4 inline-block">Go to Login</Link>
         </div>
       </div>
     );
   }
 
-  const { teacher, totalProgress } = await getTeacherData(firstTeacher.id);
-
-  if (!teacher) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <p className="text-xl text-gray-500">Teacher not found</p>
-      </div>
-    );
-  }
+  const totalProgress = await prisma.studentProgress.count({
+    where: { teacherId: teacher.id },
+  });
 
   const today = new Date();
   const todaySessions = teacher.sessions.filter(s => {
@@ -85,13 +69,11 @@ export default async function TeacherDashboardPage(): Promise<React.ReactNode> {
 
   return (
     <div className="space-y-6 pb-20 lg:pb-0">
-      {/* Welcome */}
       <div className="bg-gradient-to-r from-primary to-secondary rounded-2xl p-6 text-white">
         <h1 className="text-2xl font-bold">Assalamu Alaikum, {teacher.fullName}</h1>
         <p className="text-white/80 mt-1">Welcome back to your dashboard</p>
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="border-l-4 border-l-primary hover:shadow-lg transition-shadow">
           <CardContent className="pt-6">
@@ -153,7 +135,6 @@ export default async function TeacherDashboardPage(): Promise<React.ReactNode> {
         </Card>
       </div>
 
-      {/* Quick Links */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Link href="/teacher/students">
           <Card className="hover:shadow-lg transition-shadow cursor-pointer border-0 bg-gradient-to-br from-primary/5 to-primary/10">
@@ -173,7 +154,7 @@ export default async function TeacherDashboardPage(): Promise<React.ReactNode> {
             </CardContent>
           </Card>
         </Link>
-        <Link href={`/teacher/students/${teacher.students[0]?.id || ''}`}>
+        <Link href={teacher.students[0] ? `/teacher/students/${teacher.students[0].id}` : '#'}>
           <Card className="hover:shadow-lg transition-shadow cursor-pointer border-0 bg-gradient-to-br from-green-50 to-green-100">
             <CardContent className="pt-6 text-center">
               <BookOpen className="h-8 w-8 text-green-600 mx-auto mb-2" />
@@ -184,7 +165,6 @@ export default async function TeacherDashboardPage(): Promise<React.ReactNode> {
         </Link>
       </div>
 
-      {/* Today's Schedule */}
       <Card>
         <CardHeader className="border-b">
           <CardTitle className="flex items-center gap-2 text-lg">
@@ -204,10 +184,7 @@ export default async function TeacherDashboardPage(): Promise<React.ReactNode> {
                     <div>
                       <p className="font-medium">{session.student.fullName}</p>
                       <p className="text-sm text-gray-500">
-                        {new Date(session.scheduledAt).toLocaleTimeString([], { 
-                          hour: '2-digit', 
-                          minute: '2-digit' 
-                        })}
+                        {new Date(session.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </p>
                     </div>
                   </div>
@@ -224,7 +201,6 @@ export default async function TeacherDashboardPage(): Promise<React.ReactNode> {
         </CardContent>
       </Card>
 
-      {/* Upcoming Sessions */}
       <Card>
         <CardHeader className="border-b">
           <CardTitle className="flex items-center gap-2 text-lg">
@@ -243,10 +219,7 @@ export default async function TeacherDashboardPage(): Promise<React.ReactNode> {
                       <p className="font-medium">{session.student.fullName}</p>
                       <p className="text-sm text-gray-500">
                         {new Date(session.scheduledAt).toLocaleDateString()} at{' '}
-                        {new Date(session.scheduledAt).toLocaleTimeString([], { 
-                          hour: '2-digit', 
-                          minute: '2-digit' 
-                        })}
+                        {new Date(session.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </p>
                     </div>
                   </div>

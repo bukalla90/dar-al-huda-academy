@@ -12,7 +12,7 @@ interface CreateProgressData {
   ayahTo: number;
   score: number;
   notes: string;
-  type: 'MEMORIZATION' | 'RECITATION' | 'REVISION';
+  type: string;
 }
 
 export async function createProgress(data: CreateProgressData): Promise<{
@@ -35,6 +35,7 @@ export async function createProgress(data: CreateProgressData): Promise<{
     revalidatePath(`/teacher/students/${data.studentId}`);
     return { success: true };
   } catch (error) {
+    console.error('Create progress error:', error);
     return { success: false, error: 'Failed to save progress' };
   }
 }
@@ -49,9 +50,7 @@ export async function getStudentProgress(studentId: string): Promise<{
     score: number;
     notes: string;
     createdAt: Date;
-    teacher: {
-      fullName: string;
-    };
+    teacher: { fullName: string };
   }>;
   error?: string;
 }> {
@@ -59,9 +58,7 @@ export async function getStudentProgress(studentId: string): Promise<{
     const progress = await prisma.studentProgress.findMany({
       where: { studentId },
       include: {
-        teacher: {
-          select: { fullName: true },
-        },
+        teacher: { select: { fullName: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -98,7 +95,7 @@ export async function getStudentCurrentStatus(studentId: string): Promise<{
       success: true,
       status: {
         currentSurah,
-        currentJuz: 'Juz 1', // You can calculate this based on surah
+        currentJuz: 'Juz 1',
         averageScore,
         totalRecords: progress.length,
         lastUpdated: progress[0]?.createdAt || null,

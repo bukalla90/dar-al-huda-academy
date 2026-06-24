@@ -1,14 +1,15 @@
 // src/app/(dashboard)/teacher/students/[studentId]/page.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, Save, BookOpen, Star, Plus } from 'lucide-react';
+import { ArrowLeft, Save, BookOpen, Star, Plus, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { createProgress, getStudentProgress, getStudentCurrentStatus } from '@/lib/action/progress.action';
 
@@ -33,11 +34,10 @@ interface StudentStatus {
   lastUpdated: Date | null;
 }
 
-export default function StudentProgressPage({
-  params,
-}: {
-  params: { studentId: string };
-}): React.ReactNode {
+export default function StudentProgressPage(): React.ReactNode {
+  const params = useParams();
+  const studentId = params.studentId as string;
+
   const [showForm, setShowForm] = useState<boolean>(false);
   const [surah, setSurah] = useState<string>('');
   const [ayahFrom, setAyahFrom] = useState<string>('');
@@ -47,16 +47,17 @@ export default function StudentProgressPage({
   const [progress, setProgress] = useState<ProgressRecord[]>([]);
   const [status, setStatus] = useState<StudentStatus | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
+  const [pageLoading, setPageLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
+  const [studentName, setStudentName] = useState<string>('');
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  async function loadData(): Promise<void> {
+  const loadData = useCallback(async (): Promise<void> => {
+    if (!studentId) return;
+    
+    setPageLoading(true);
     const [progressResult, statusResult] = await Promise.all([
-      getStudentProgress(params.studentId),
-      getStudentCurrentStatus(params.studentId),
+      getStudentProgress(studentId),
+      getStudentCurrentStatus(studentId),
     ]);
 
     if (progressResult.success && progressResult.progress) {
@@ -66,7 +67,19 @@ export default function StudentProgressPage({
     if (statusResult.success && statusResult.status) {
       setStatus(statusResult.status);
     }
-  }
+
+    // Get teacherId from cookie
+    const teacherId = document.cookie
+      .split('; ')
+      .find(row => row.startsWith('teacherId='))
+      ?.split('=')[1];
+
+    setPageLoading(false);
+  }, [studentId]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   async function handleAddProgress(): Promise<void> {
     if (!surah || !ayahFrom || !ayahTo || !score) {
@@ -74,12 +87,22 @@ export default function StudentProgressPage({
       return;
     }
 
+    const teacherId = document.cookie
+      .split('; ')
+      .find(row => row.startsWith('teacherId='))
+      ?.split('=')[1];
+
+    if (!teacherId) {
+      setError('Teacher ID not found. Please login again.');
+      return;
+    }
+
     setLoading(true);
     setError('');
 
     const result = await createProgress({
-      studentId: params.studentId,
-      teacherId: 'temp-teacher-id', // TODO: Get from session
+      studentId,
+      teacherId,
       surah,
       ayahFrom: parseInt(ayahFrom),
       ayahTo: parseInt(ayahTo),
@@ -101,6 +124,17 @@ export default function StudentProgressPage({
     }
 
     setLoading(false);
+  }
+
+  if (pageLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-gray-500">Loading student progress...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -186,6 +220,7 @@ export default function StudentProgressPage({
                     value={ayahFrom} 
                     onChange={(e) => setAyahFrom(e.target.value)}
                     placeholder="1"
+                    min="1"
                   />
                 </div>
                 <div>
@@ -195,6 +230,7 @@ export default function StudentProgressPage({
                     value={ayahTo} 
                     onChange={(e) => setAyahTo(e.target.value)}
                     placeholder="5"
+                    min="1"
                   />
                 </div>
               </div>

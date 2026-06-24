@@ -18,14 +18,19 @@ import {
   Image,
   User,
   Phone,
+  Clock,
 } from 'lucide-react';
 import { JitsiMeetingComponent } from '@/components/jitsi/jitsi-meeting';
 
-interface StudentData {
+interface StudentFull {
+  id: string;
   fullName: string;
   courseType: string;
-  user: { isActive: boolean };
-  teacher: { fullName: string; phone: string } | null;
+  age: number;
+  country: string;
+  phone: string;
+  user: { isActive: boolean; username: string };
+  teacher: { id: string; fullName: string; phone: string; email: string } | null;
   progress: Array<{
     id: string;
     surah: string;
@@ -33,12 +38,12 @@ interface StudentData {
     ayahTo: number;
     score: number;
     notes: string;
-    createdAt: Date;
+    createdAt: string;
     teacher: { fullName: string };
   }>;
   sessions: Array<{
     id: string;
-    scheduledAt: Date;
+    scheduledAt: string;
     meetingUrl: string;
     status: string;
   }>;
@@ -56,18 +61,25 @@ interface StudentData {
   }>;
 }
 
-interface ActiveMeeting {
-  roomName: string;
-  userName: string;
-}
-
 export default function StudentDashboardPage(): React.ReactNode {
-  const [student, setStudent] = useState<StudentData | null>(null);
+  const [student, setStudent] = useState<StudentFull | null>(null);
   const [generalMaterials, setGeneralMaterials] = useState<Array<{ id: string; title: string; fileUrl: string; type: string }>>([]);
-  const [activeMeeting, setActiveMeeting] = useState<ActiveMeeting | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [activeMeeting, setActiveMeeting] = useState<{ roomName: string; userName: string } | null>(null);
 
   const loadData = useCallback(async (): Promise<void> => {
-    console.log('Loading student data...');
+    try {
+      const response = await fetch('/api/student/dashboard');
+      const data = await response.json();
+      if (data.success) {
+        setStudent(data.student);
+        setGeneralMaterials(data.generalMaterials || []);
+      }
+    } catch (error) {
+      console.error('Failed to load student data:', error);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -76,14 +88,22 @@ export default function StudentDashboardPage(): React.ReactNode {
 
   function joinMeeting(meetingUrl: string): void {
     const roomName = meetingUrl.replace('https://meet.jit.si/', '');
-    setActiveMeeting({ 
-      roomName: roomName, 
-      userName: student?.fullName || 'Student' 
-    });
+    setActiveMeeting({ roomName, userName: student?.fullName || 'Student' });
   }
 
   function closeMeeting(): void {
     setActiveMeeting(null);
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-gray-500">Loading your dashboard...</p>
+        </div>
+      </div>
+    );
   }
 
   if (activeMeeting) {
@@ -99,7 +119,11 @@ export default function StudentDashboardPage(): React.ReactNode {
   if (!student) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <p>Loading...</p>
+        <div className="text-center">
+          <BookOpen className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+          <p className="text-xl text-gray-500">Student not found</p>
+          <p className="text-sm text-gray-400 mt-2">Please contact admin if this is an error</p>
+        </div>
       </div>
     );
   }
@@ -109,6 +133,12 @@ export default function StudentDashboardPage(): React.ReactNode {
     ? Math.round(student.progress.reduce((sum: number, p) => sum + p.score, 0) / student.progress.length)
     : 0;
 
+  const today = new Date();
+  const todaySessions = student.sessions.filter(s => {
+    const sessionDate = new Date(s.scheduledAt);
+    return sessionDate.toDateString() === today.toDateString();
+  });
+
   const typeIcon: Record<string, typeof FileText> = {
     PDF: FileText,
     AUDIO: Music,
@@ -117,7 +147,7 @@ export default function StudentDashboardPage(): React.ReactNode {
 
   return (
     <div className="space-y-6 pb-20 lg:pb-0">
-      {/* Welcome Card */}
+      {/* Welcome */}
       <div className="bg-gradient-to-r from-primary via-primary to-secondary rounded-2xl p-6 sm:p-8 text-white shadow-xl">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
@@ -167,11 +197,73 @@ export default function StudentDashboardPage(): React.ReactNode {
         </Card>
       )}
 
+      {/* Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="border-l-4 border-l-primary hover:shadow-lg transition-shadow">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500">Progress Records</p>
+                <p className="text-3xl font-bold text-text">{student.progress.length}</p>
+              </div>
+              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                <TrendingUp className="h-6 w-6 text-primary" />
+              </div>
+            </div>
+            <p className="text-xs text-gray-500 mt-2">Avg: {averageScore}/10</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-accent hover:shadow-lg transition-shadow">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500">Today&apos;s Classes</p>
+                <p className="text-3xl font-bold text-text">{todaySessions.length}</p>
+              </div>
+              <div className="w-12 h-12 rounded-full bg-accent/10 flex items-center justify-center">
+                <Calendar className="h-6 w-6 text-accent" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-green-500 hover:shadow-lg transition-shadow">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500">Materials</p>
+                <p className="text-3xl font-bold text-text">{student.materials.length + generalMaterials.length}</p>
+              </div>
+              <div className="w-12 h-12 rounded-full bg-green-50 flex items-center justify-center">
+                <BookOpen className="h-6 w-6 text-green-500" />
+              </div>
+            </div>
+            <p className="text-xs text-gray-500 mt-2">Available</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-blue-500 hover:shadow-lg transition-shadow">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500">Upcoming</p>
+                <p className="text-3xl font-bold text-text">{student.sessions.length}</p>
+              </div>
+              <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center">
+                <Clock className="h-6 w-6 text-blue-500" />
+              </div>
+            </div>
+            <p className="text-xs text-gray-500 mt-2">Scheduled</p>
+          </CardContent>
+        </Card>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
           {/* My Teacher */}
-          {student.teacher && (
+          {student.teacher ? (
             <Card className="shadow-lg border-0">
               <CardHeader className="border-b bg-gradient-to-r from-primary/5 to-secondary/5">
                 <CardTitle className="flex items-center gap-2 text-lg">
@@ -196,29 +288,35 @@ export default function StudentDashboardPage(): React.ReactNode {
                 </div>
               </CardContent>
             </Card>
+          ) : (
+            <Card className="shadow-lg border-0">
+              <CardContent className="py-8 text-center text-gray-500">
+                <GraduationCap className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                <p>No teacher assigned yet</p>
+                <p className="text-sm">Admin will assign a teacher soon</p>
+              </CardContent>
+            </Card>
           )}
 
-          {/* Upcoming Classes */}
+          {/* Today's Classes */}
           <Card className="shadow-lg border-0">
             <CardHeader className="border-b bg-gradient-to-r from-blue-50 to-cyan-50">
               <CardTitle className="flex items-center gap-2 text-lg">
                 <Calendar className="h-5 w-5 text-blue-600" />
-                Upcoming Classes
+                Today&apos;s Classes
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
-              {student.sessions.length > 0 ? (
+              {todaySessions.length > 0 ? (
                 <div className="divide-y">
-                  {student.sessions.map((session) => (
+                  {todaySessions.map((session) => (
                     <div key={session.id} className="p-4 flex items-center justify-between hover:bg-gray-50">
                       <div className="flex items-center gap-4">
                         <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
                           <Video className="h-5 w-5 text-blue-600" />
                         </div>
                         <div>
-                          <p className="font-medium">
-                            {new Date(session.scheduledAt).toLocaleDateString()}
-                          </p>
+                          <p className="font-medium">Class Session</p>
                           <p className="text-sm text-gray-500">
                             {new Date(session.scheduledAt).toLocaleTimeString([], { 
                               hour: '2-digit', 
@@ -243,7 +341,7 @@ export default function StudentDashboardPage(): React.ReactNode {
               ) : (
                 <div className="p-8 text-center text-gray-500">
                   <Calendar className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-                  <p>No upcoming classes scheduled</p>
+                  <p>No classes scheduled for today</p>
                 </div>
               )}
             </CardContent>
@@ -254,7 +352,7 @@ export default function StudentDashboardPage(): React.ReactNode {
             <CardHeader className="border-b bg-gradient-to-r from-green-50 to-emerald-50">
               <CardTitle className="flex items-center gap-2 text-lg">
                 <TrendingUp className="h-5 w-5 text-green-600" />
-                My Progress
+                Recent Progress
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
@@ -288,6 +386,56 @@ export default function StudentDashboardPage(): React.ReactNode {
                 <div className="p-8 text-center text-gray-500">
                   <BookOpen className="h-12 w-12 mx-auto mb-3 text-gray-300" />
                   <p>No progress records yet</p>
+                  <p className="text-sm">Your teacher will update your progress after each class</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Upcoming Sessions */}
+          <Card className="shadow-lg border-0">
+            <CardHeader className="border-b">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Clock className="h-5 w-5 text-accent" />
+                Upcoming Sessions
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              {student.sessions.length > 0 ? (
+                <div className="divide-y">
+                  {student.sessions.map((session) => (
+                    <div key={session.id} className="flex items-center justify-between p-4 hover:bg-gray-50">
+                      <div className="flex items-center gap-4">
+                        <div className="w-2 h-2 rounded-full bg-accent" />
+                        <div>
+                          <p className="font-medium">Class Session</p>
+                          <p className="text-sm text-gray-500">
+                            {new Date(session.scheduledAt).toLocaleDateString()} at{' '}
+                            {new Date(session.scheduledAt).toLocaleTimeString([], { 
+                              hour: '2-digit', 
+                              minute: '2-digit' 
+                            })}
+                          </p>
+                        </div>
+                      </div>
+                      {session.meetingUrl && (
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          className="text-primary border-primary"
+                          onClick={() => joinMeeting(session.meetingUrl)}
+                        >
+                          <Video className="h-4 w-4 mr-1" />
+                          Join
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-8 text-center text-gray-500">
+                  <Clock className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                  <p>No upcoming sessions</p>
                 </div>
               )}
             </CardContent>
@@ -398,6 +546,16 @@ export default function StudentDashboardPage(): React.ReactNode {
                 <BookOpen className="h-8 w-8 mx-auto mb-2 text-white/80" />
                 <p className="text-white/80 text-sm">My Course</p>
                 <p className="text-xl font-bold mt-1">{student.courseType.replace(/_/g, ' ')}</p>
+                <div className="flex justify-center gap-4 mt-4 text-sm text-white/80">
+                  <div>
+                    <p className="font-bold">{student.progress.length}</p>
+                    <p>Records</p>
+                  </div>
+                  <div>
+                    <p className="font-bold">{student.sessions.length}</p>
+                    <p>Classes</p>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>

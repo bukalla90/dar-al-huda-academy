@@ -3,6 +3,8 @@
 
 import { prisma } from '@/lib/prisma';
 import { compare } from 'bcryptjs';
+import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
 
 interface LoginData {
   username: string;
@@ -16,12 +18,11 @@ export async function loginUser(data: LoginData): Promise<{
   redirectUrl?: string;
 }> {
   try {
-    // Find user by username
     const user = await prisma.user.findUnique({
       where: { username: data.username },
       include: {
-        teacher: true,
-        student: true,
+        teacher: { select: { id: true } },
+        student: { select: { id: true } },
       },
     });
 
@@ -33,38 +34,74 @@ export async function loginUser(data: LoginData): Promise<{
       return { success: false, error: 'Account is deactivated. Contact admin.' };
     }
 
-    // Check password
     const isValidPassword = await compare(data.password, user.passwordHash);
     if (!isValidPassword) {
       return { success: false, error: 'Invalid username or password' };
     }
 
-    // Check role matches
     if (user.role !== data.role) {
       return { success: false, error: `This account is not a ${data.role.toLowerCase()}. Please select the correct role.` };
     }
 
-    // Check teacher/student record exists
-    if (user.role === 'TEACHER' && !user.teacher) {
-      return { success: false, error: 'Teacher profile not found. Contact admin.' };
+    const cookieStore = await cookies();
+    
+    cookieStore.set('userId', user.id, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7,
+      path: '/',
+    });
+    
+    cookieStore.set('userRole', user.role, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7,
+      path: '/',
+    });
+    
+    if (user.teacher?.id) {
+      cookieStore.set('teacherId', user.teacher.id, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 7,
+        path: '/',
+      });
+    }
+    
+    if (user.student?.id) {
+      cookieStore.set('studentId', user.student.id, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 7,
+        path: '/',
+      });
     }
 
-    if (user.role === 'STUDENT' && !user.student) {
-      return { success: false, error: 'Student profile not found. Contact admin.' };
-    }
-
-    // Redirect based on role
     let redirectUrl = '/';
-    if (user.role === 'ADMIN') {
-      redirectUrl = '/admin';
-    } else if (user.role === 'TEACHER') {
-      redirectUrl = '/teacher';
-    } else if (user.role === 'STUDENT') {
-      redirectUrl = '/student';
-    }
+    if (user.role === 'ADMIN') redirectUrl = '/admin';
+    else if (user.role === 'TEACHER') redirectUrl = '/teacher';
+    else if (user.role === 'STUDENT') redirectUrl = '/student';
 
     return { success: true, redirectUrl };
   } catch (error) {
+    console.error('Login error:', error);
     return { success: false, error: 'Login failed. Please try again.' };
   }
+}
+
+// FIXED: Logout action that clears cookies and redirects
+export async function logoutUser(): Promise<void> {
+  'use server';
+  
+  const cookieStore = await cookies();
+  cookieStore.delete('userId');
+  cookieStore.delete('userRole');
+  cookieStore.delete('teacherId');
+  cookieStore.delete('studentId');
+  
+  redirect('/login');
 }

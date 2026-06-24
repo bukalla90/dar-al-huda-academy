@@ -16,20 +16,21 @@ import {
 import { 
   Bell, 
   Menu, 
-  LogOut, 
   Settings, 
   User,
   Globe,
   Moon,
   Sun,
+  Home,
 } from 'lucide-react';
 import { getInitials } from '@/lib/utils';
+import { LogoutButton } from '@/components/auth/logout-button';
 
 interface AdminHeaderProps {
   onMenuClick?: () => void;
 }
 
-export function AdminHeader({ onMenuClick }: AdminHeaderProps): JSX.Element {
+export function AdminHeader({ onMenuClick }: AdminHeaderProps): React.ReactNode {
   const [language, setLanguage] = useState<'en' | 'am'>('en');
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
 
@@ -49,7 +50,6 @@ export function AdminHeader({ onMenuClick }: AdminHeaderProps): JSX.Element {
       <div className="h-6 w-px bg-gray-200 lg:hidden" aria-hidden="true" />
 
       <div className="flex flex-1 gap-x-4 self-stretch lg:gap-x-6">
-        {/* Search or breadcrumb can go here */}
         <div className="flex items-center">
           <h1 className="text-lg font-semibold text-gray-900">
             Admin Dashboard
@@ -57,11 +57,19 @@ export function AdminHeader({ onMenuClick }: AdminHeaderProps): JSX.Element {
         </div>
 
         <div className="flex items-center gap-x-4 lg:gap-x-6 ml-auto">
+          {/* Home Button */}
+          <Link href="/">
+            <Button variant="ghost" size="icon" title="Home">
+              <Home className="h-5 w-5" />
+            </Button>
+          </Link>
+
           {/* Language Toggle */}
           <Button
             variant="ghost"
             size="icon"
             onClick={() => setLanguage(language === 'en' ? 'am' : 'en')}
+            title="Toggle Language"
           >
             <Globe className="h-5 w-5" />
           </Button>
@@ -71,6 +79,7 @@ export function AdminHeader({ onMenuClick }: AdminHeaderProps): JSX.Element {
             variant="ghost"
             size="icon"
             onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+            title="Toggle Theme"
           >
             {theme === 'light' ? (
               <Moon className="h-5 w-5" />
@@ -80,7 +89,7 @@ export function AdminHeader({ onMenuClick }: AdminHeaderProps): JSX.Element {
           </Button>
 
           {/* Notifications */}
-          <Button variant="ghost" size="icon" className="relative">
+          <Button variant="ghost" size="icon" className="relative" title="Notifications">
             <Bell className="h-5 w-5" />
             <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-accent" />
           </Button>
@@ -109,19 +118,22 @@ export function AdminHeader({ onMenuClick }: AdminHeaderProps): JSX.Element {
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                <User className="mr-2 h-4 w-4" />
-                Profile
+              <DropdownMenuItem asChild>
+                <Link href="/admin/settings">
+                  <Settings className="mr-2 h-4 w-4" />
+                  Settings
+                </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Settings className="mr-2 h-4 w-4" />
-                Settings
+              <DropdownMenuItem asChild>
+                <Link href="/">
+                  <Home className="mr-2 h-4 w-4" />
+                  Home
+                </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-red-600">
-                <LogOut className="mr-2 h-4 w-4" />
-                Log out
-              </DropdownMenuItem>
+              <div className="px-2 py-1.5">
+                <LogoutButton />
+              </div>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
