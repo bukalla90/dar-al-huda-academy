@@ -36,7 +36,7 @@ const mobileNavItems: MobileNavItem[] = [
   { title: 'Settings', href: '/admin/settings', icon: Settings },
 ];
 
-export function MobileNav(): JSX.Element {
+export function MobileNav(): React.ReactNode {
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const pathname = usePathname();
 
@@ -44,7 +44,7 @@ export function MobileNav(): JSX.Element {
     <>
       {/* Mobile bottom navigation bar */}
       <div className="fixed bottom-0 left-0 right-0 z-50 lg:hidden">
-        <div className="flex items-center justify-around bg-white border-t border-gray-200 px-2 py-2">
+        <div className="flex items-center justify-around bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 px-2 py-2">
           {mobileNavItems.slice(0, 5).map((item) => {
             const isActive = pathname === item.href;
             return (
@@ -54,8 +54,8 @@ export function MobileNav(): JSX.Element {
                 className={cn(
                   'flex flex-col items-center gap-1 p-2 rounded-lg transition-colors',
                   isActive
-                    ? 'text-primary bg-primary/10'
-                    : 'text-gray-500 hover:text-primary'
+                    ? 'text-primary bg-primary/10 dark:bg-primary/20'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-primary'
                 )}
               >
                 <item.icon className="h-5 w-5" />
@@ -65,7 +65,7 @@ export function MobileNav(): JSX.Element {
           })}
           <button
             onClick={() => setIsOpen(true)}
-            className="flex flex-col items-center gap-1 p-2 text-gray-500 hover:text-primary"
+            className="flex flex-col items-center gap-1 p-2 text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-primary"
           >
             <BookMarked className="h-5 w-5" />
             <span className="text-[10px] font-medium">More</span>
@@ -77,10 +77,10 @@ export function MobileNav(): JSX.Element {
       {isOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <div className="fixed inset-0 bg-black/50" onClick={() => setIsOpen(false)} />
-          <div className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl p-6 animate-slide-up">
+          <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 rounded-t-3xl p-6 animate-slide-up border-t dark:border-gray-700">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-semibold">Menu</h2>
-              <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)}>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Menu</h2>
+              <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)} className="dark:text-gray-300 dark:hover:text-white">
                 <X className="h-5 w-5" />
               </Button>
             </div>
@@ -95,8 +95,8 @@ export function MobileNav(): JSX.Element {
                     className={cn(
                       'flex flex-col items-center gap-2 p-4 rounded-xl transition-colors',
                       isActive
-                        ? 'bg-primary/10 text-primary'
-                        : 'hover:bg-gray-50'
+                        ? 'bg-primary/10 text-primary dark:bg-primary/20'
+                        : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
                     )}
                   >
                     <item.icon className="h-6 w-6" />

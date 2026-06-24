@@ -14,12 +14,6 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -29,14 +23,14 @@ import {
 import { getStudentsPaginated } from '@/lib/action/student.actions';
 import { getPaymentStatusColor } from '@/lib/utils';
 import { 
-  Plus, 
   Search, 
-  MoreVertical, 
   Eye,
   UserPlus,
   Users,
   BookOpen,
   Filter,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 
 export default async function StudentsPage({
@@ -63,8 +57,8 @@ export default async function StudentsPage({
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-text">Students</h1>
-          <p className="text-sm text-gray-500 mt-1">Manage all students at Dar Al Huda Academy</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Students</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Manage all students at Dar Al Huda Academy</p>
         </div>
         <Link href="/admin/students/create">
           <Button className="bg-primary hover:bg-primary/90 w-full sm:w-auto">
@@ -76,33 +70,33 @@ export default async function StudentsPage({
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card>
+        <Card className="dark:bg-gray-800 dark:border-gray-700">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Students</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium dark:text-gray-300">Total Students</CardTitle>
+            <Users className="h-4 w-4 text-gray-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{data?.totalCount || 0}</div>
+            <div className="text-2xl font-bold dark:text-white">{data?.totalCount || 0}</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="dark:bg-gray-800 dark:border-gray-700">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Students</CardTitle>
-            <BookOpen className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium dark:text-gray-300">Active Students</CardTitle>
+            <BookOpen className="h-4 w-4 text-gray-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-2xl font-bold dark:text-white">
               {students.filter(s => s.user.isActive).length || 0}
             </div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="dark:bg-gray-800 dark:border-gray-700">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Unassigned</CardTitle>
-            <UserPlus className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium dark:text-gray-300">Unassigned</CardTitle>
+            <UserPlus className="h-4 w-4 text-gray-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-2xl font-bold dark:text-white">
               {students.filter(s => !s.teacher).length || 0}
             </div>
           </CardContent>
@@ -118,14 +112,14 @@ export default async function StudentsPage({
               name="search"
               placeholder="Search students..."
               defaultValue={search}
-              className="pl-10"
+              className="pl-10 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
             />
           </div>
           <Select name="course" defaultValue={course}>
-            <SelectTrigger className="w-full sm:w-[180px]">
+            <SelectTrigger className="w-full sm:w-[180px] dark:bg-gray-800 dark:border-gray-700 dark:text-white">
               <SelectValue placeholder="All Courses" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="dark:bg-gray-800 dark:border-gray-700">
               <SelectItem value="">All Courses</SelectItem>
               <SelectItem value="HIFZ">Hifz</SelectItem>
               <SelectItem value="TAJWEED">Tajweed</SelectItem>
@@ -139,16 +133,16 @@ export default async function StudentsPage({
             </SelectContent>
           </Select>
           <Select name="status" defaultValue={status}>
-            <SelectTrigger className="w-full sm:w-[180px]">
+            <SelectTrigger className="w-full sm:w-[180px] dark:bg-gray-800 dark:border-gray-700 dark:text-white">
               <SelectValue placeholder="All Status" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="dark:bg-gray-800 dark:border-gray-700">
               <SelectItem value="">All Status</SelectItem>
               <SelectItem value="active">Active</SelectItem>
               <SelectItem value="inactive">Inactive</SelectItem>
             </SelectContent>
           </Select>
-          <Button type="submit" variant="outline" className="w-full sm:w-auto">
+          <Button type="submit" variant="outline" className="w-full sm:w-auto dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800">
             <Filter className="h-4 w-4 mr-2" />
             Filter
           </Button>
@@ -160,89 +154,85 @@ export default async function StudentsPage({
         {students.map((student) => {
           const lastPayment = student.payments[0];
           return (
-            <Card key={student.id} className="mb-3">
-              <CardContent className="pt-4">
-                <div className="flex justify-between items-start mb-3">
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-text">{student.fullName}</h3>
-                    <p className="text-sm text-gray-500">{student.country}</p>
-                  </div>
-                  <Badge variant={student.user.isActive ? 'success' : 'secondary'}>
-                    {student.user.isActive ? 'Active' : 'Inactive'}
-                  </Badge>
-                </div>
-
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Course:</span>
-                    <span className="font-medium">{student.courseType.replace(/_/g, ' ')}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Teacher:</span>
-                    <span className="font-medium">{student.teacher?.fullName || 'Unassigned'}</span>
-                  </div>
-                  {lastPayment && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-500">Payment:</span>
-                      <Badge className={getPaymentStatusColor(lastPayment.status as 'PAID' | 'UNPAID' | 'PARTIAL' | 'OVERDUE')}>
-                        {lastPayment.status}
-                      </Badge>
+            <Link key={student.id} href={`/admin/students/${student.id}`}>
+              <Card className="mb-3 hover:shadow-md transition-shadow cursor-pointer dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-750">
+                <CardContent className="pt-4">
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-gray-900 dark:text-white">{student.fullName}</h3>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">{student.country}</p>
                     </div>
-                  )}
-                </div>
+                    <Badge variant={student.user.isActive ? 'success' : 'secondary'}>
+                      {student.user.isActive ? 'Active' : 'Inactive'}
+                    </Badge>
+                  </div>
 
-                <div className="flex justify-end mt-4 pt-3 border-t">
-                  {/* FIXED: Changed from /edit to just /studentId */}
-                  <Link href={`/admin/students/${student.id}`}>
-                    <Button variant="ghost" size="sm">
-                      <Eye className="h-4 w-4 mr-1" />
-                      View
-                    </Button>
-                  </Link>
-                </div>
-              </CardContent>
-            </Card>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-500 dark:text-gray-400">Course:</span>
+                      <span className="font-medium dark:text-gray-200">{student.courseType.replace(/_/g, ' ')}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500 dark:text-gray-400">Teacher:</span>
+                      <span className="font-medium dark:text-gray-200">{student.teacher?.fullName || 'Unassigned'}</span>
+                    </div>
+                    {lastPayment && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-500 dark:text-gray-400">Payment:</span>
+                        <Badge className={getPaymentStatusColor(lastPayment.status as 'PAID' | 'UNPAID' | 'PARTIAL' | 'OVERDUE')}>
+                          {lastPayment.status}
+                        </Badge>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex justify-end mt-4 pt-3 border-t dark:border-gray-700">
+                    <Eye className="h-4 w-4 text-gray-400" />
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
           );
         })}
         {students.length === 0 && (
           <div className="text-center py-12">
             <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900">No students found</h3>
-            <p className="text-gray-500 mt-1">Get started by adding a new student.</p>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white">No students found</h3>
+            <p className="text-gray-500 dark:text-gray-400 mt-1">Get started by adding a new student.</p>
           </div>
         )}
       </div>
 
       {/* Desktop Table */}
       <div className="hidden lg:block">
-        <Card>
+        <Card className="dark:bg-gray-800 dark:border-gray-700">
           <CardContent className="p-0">
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Student</TableHead>
-                  <TableHead>Course</TableHead>
-                  <TableHead>Teacher</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Payment</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                <TableRow className="dark:border-gray-700">
+                  <TableHead className="dark:text-gray-300">Student</TableHead>
+                  <TableHead className="dark:text-gray-300">Course</TableHead>
+                  <TableHead className="dark:text-gray-300">Teacher</TableHead>
+                  <TableHead className="dark:text-gray-300">Status</TableHead>
+                  <TableHead className="dark:text-gray-300">Payment</TableHead>
+                  <TableHead className="text-center dark:text-gray-300">View</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {students.map((student) => (
-                  <TableRow key={student.id}>
+                  <TableRow key={student.id} className="dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50">
                     <TableCell>
                       <div>
-                        <p className="font-medium text-text">{student.fullName}</p>
-                        <p className="text-sm text-gray-500">{student.country}</p>
+                        <p className="font-medium text-gray-900 dark:text-white">{student.fullName}</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">{student.country}</p>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">
+                      <Badge variant="outline" className="dark:border-gray-600 dark:text-gray-300">
                         {student.courseType.replace(/_/g, ' ')}
                       </Badge>
                     </TableCell>
-                    <TableCell>{student.teacher?.fullName || 'Unassigned'}</TableCell>
+                    <TableCell className="dark:text-gray-300">{student.teacher?.fullName || 'Unassigned'}</TableCell>
                     <TableCell>
                       <Badge variant={student.user.isActive ? 'success' : 'secondary'}>
                         {student.user.isActive ? 'Active' : 'Inactive'}
@@ -256,26 +246,15 @@ export default async function StudentsPage({
                           {student.payments[0].status}
                         </Badge>
                       ) : (
-                        <span className="text-gray-400">No payments</span>
+                        <span className="text-gray-400 dark:text-gray-500">No payments</span>
                       )}
                     </TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          {/* FIXED: Changed from /edit to just /studentId */}
-                          <DropdownMenuItem asChild>
-                            <Link href={`/admin/students/${student.id}`}>
-                              <Eye className="h-4 w-4 mr-2" />
-                              View Details
-                            </Link>
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                    <TableCell className="text-center">
+                      <Link href={`/admin/students/${student.id}`}>
+                        <Button variant="ghost" size="icon" className="dark:hover:bg-gray-700">
+                          <Eye className="h-4 w-4 dark:text-gray-400" />
+                        </Button>
+                      </Link>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -287,7 +266,16 @@ export default async function StudentsPage({
 
       {/* Pagination */}
       {data && data.totalPages > 1 && (
-        <div className="flex justify-center gap-2">
+        <div className="flex items-center justify-center gap-2">
+          <Link
+            href={`/admin/students?page=${page - 1}${search ? `&search=${search}` : ''}${course ? `&course=${course}` : ''}${status ? `&status=${status}` : ''}`}
+            className={page <= 1 ? 'pointer-events-none opacity-50' : ''}
+          >
+            <Button variant="outline" size="sm" disabled={page <= 1} className="dark:border-gray-700 dark:text-gray-300">
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+          </Link>
+          
           {Array.from({ length: data.totalPages }, (_, i) => i + 1).map((pageNum) => (
             <Link
               key={pageNum}
@@ -296,11 +284,21 @@ export default async function StudentsPage({
               <Button
                 variant={pageNum === data.currentPage ? 'default' : 'outline'}
                 size="sm"
+                className={pageNum === data.currentPage ? '' : 'dark:border-gray-700 dark:text-gray-300'}
               >
                 {pageNum}
               </Button>
             </Link>
           ))}
+
+          <Link
+            href={`/admin/students?page=${page + 1}${search ? `&search=${search}` : ''}${course ? `&course=${course}` : ''}${status ? `&status=${status}` : ''}`}
+            className={page >= data.totalPages ? 'pointer-events-none opacity-50' : ''}
+          >
+            <Button variant="outline" size="sm" disabled={page >= data.totalPages} className="dark:border-gray-700 dark:text-gray-300">
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </Link>
         </div>
       )}
     </div>

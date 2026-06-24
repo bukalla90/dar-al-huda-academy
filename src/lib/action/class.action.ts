@@ -31,20 +31,28 @@ interface SessionWithBoth {
   student: { fullName: string };
 }
 
-export async function getTeacherSessions(teacherId: string): Promise<{
+// Helper to get teacherId from cookies
+async function getTeacherId(): Promise<string | null> {
+  const cookieStore = await cookies();
+  return cookieStore.get('teacherId')?.value || null;
+}
+
+export async function getTeacherSessions(): Promise<{
   success: boolean;
   sessions?: SessionWithStudent[];
   error?: string;
 }> {
   try {
+    const teacherId = await getTeacherId();
+    if (!teacherId) {
+      return { success: false, error: 'Not authenticated. Please login again.' };
+    }
+
     const sessions: SessionWithStudent[] = await prisma.classSession.findMany({
       where: { teacherId },
       include: {
         student: {
-          select: {
-            id: true,
-            fullName: true,
-          },
+          select: { id: true, fullName: true },
         },
       },
       orderBy: { scheduledAt: 'asc' },
@@ -57,12 +65,17 @@ export async function getTeacherSessions(teacherId: string): Promise<{
   }
 }
 
-export async function getTeacherStudents(teacherId: string): Promise<{
+export async function getTeacherStudents(): Promise<{
   success: boolean;
   students?: StudentOption[];
   error?: string;
 }> {
   try {
+    const teacherId = await getTeacherId();
+    if (!teacherId) {
+      return { success: false, error: 'Not authenticated. Please login again.' };
+    }
+
     const students: StudentOption[] = await prisma.student.findMany({
       where: { 
         teacherId,
@@ -84,7 +97,6 @@ export async function getTeacherStudents(teacherId: string): Promise<{
 }
 
 export async function createClassSession(data: {
-  teacherId: string;
   studentId: string;
   date: string;
   time: string;
@@ -94,8 +106,12 @@ export async function createClassSession(data: {
   meetingUrl?: string;
 }> {
   try {
-    // Validate inputs
-    if (!data.teacherId || !data.studentId || !data.date || !data.time) {
+    const teacherId = await getTeacherId();
+    if (!teacherId) {
+      return { success: false, error: 'Not authenticated. Please login again.' };
+    }
+
+    if (!data.studentId || !data.date || !data.time) {
       return { success: false, error: 'All fields are required' };
     }
 
@@ -103,7 +119,7 @@ export async function createClassSession(data: {
     const student = await prisma.student.findFirst({
       where: {
         id: data.studentId,
-        teacherId: data.teacherId,
+        teacherId,
       },
     });
 
@@ -111,20 +127,17 @@ export async function createClassSession(data: {
       return { success: false, error: 'Student not found or not assigned to you' };
     }
 
-    // Generate unique room name
     const roomName = `dar-al-huda-${Date.now()}-${Math.random().toString(36).substring(7)}`;
     const meetingUrl = `https://meet.jit.si/${roomName}`;
-    
     const scheduledAt = new Date(`${data.date}T${data.time}:00`);
 
-    // Check if time is in the future
     if (scheduledAt <= new Date()) {
       return { success: false, error: 'Please select a future date and time' };
     }
 
     await prisma.classSession.create({
       data: {
-        teacherId: data.teacherId,
+        teacherId,
         studentId: data.studentId,
         scheduledAt,
         meetingUrl,
@@ -218,10 +231,7 @@ export async function getUpcomingSessionsForStudent(studentId: string): Promise<
       },
       include: {
         student: {
-          select: {
-            id: true,
-            fullName: true,
-          },
+          select: { id: true, fullName: true },
         },
       },
       orderBy: { scheduledAt: 'asc' },

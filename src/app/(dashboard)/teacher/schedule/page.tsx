@@ -52,37 +52,27 @@ export default function TeacherSchedulePage(): React.ReactNode {
   const [error, setError] = useState<string>('');
   const [success, setSuccess] = useState<string>('');
   const [activeMeeting, setActiveMeeting] = useState<ActiveMeeting | null>(null);
-  const [teacherId, setTeacherId] = useState<string>('');
-
-  // Get teacherId from cookie
-  function getTeacherIdFromCookie(): string {
-    const cookies = document.cookie.split('; ');
-    const teacherCookie = cookies.find(row => row.startsWith('teacherId='));
-    return teacherCookie ? teacherCookie.split('=')[1] : '';
-  }
 
   const loadData = useCallback(async (): Promise<void> => {
-    const tid = getTeacherIdFromCookie();
+    setPageLoading(true);
+    setError('');
     
-    if (!tid) {
-      setPageLoading(false);
-      setError('Teacher ID not found. Please login again.');
-      return;
-    }
-
-    setTeacherId(tid);
-    
+    // Call server actions without teacherId - they'll get it from cookies server-side
     const [sessionsResult, studentsResult] = await Promise.all([
-      getTeacherSessions(tid),
-      getTeacherStudents(tid),
+      getTeacherSessions(),
+      getTeacherStudents(),
     ]);
 
     if (sessionsResult.success && sessionsResult.sessions) {
       setSessions(sessionsResult.sessions);
+    } else if (sessionsResult.error) {
+      setError(sessionsResult.error);
     }
 
     if (studentsResult.success && studentsResult.students) {
       setStudents(studentsResult.students);
+    } else if (studentsResult.error) {
+      setError(studentsResult.error);
     }
 
     setPageLoading(false);
@@ -101,8 +91,8 @@ export default function TeacherSchedulePage(): React.ReactNode {
     setLoading(true);
     setError('');
 
+    // Server action gets teacherId from cookies
     const result = await createClassSession({
-      teacherId,
       studentId,
       date,
       time,

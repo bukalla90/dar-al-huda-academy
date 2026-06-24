@@ -22,11 +22,13 @@ import {
   TrendingUp, 
   User, 
   Phone, 
-  MapPin,
   Save,
   Loader2,
   CreditCard,
-  GraduationCap,
+  CheckCircle,
+  XCircle,
+  AlertTriangle,
+  Clock,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -75,6 +77,20 @@ interface TeacherOption {
   email: string;
 }
 
+const statusIcon: Record<string, typeof CheckCircle> = {
+  PAID: CheckCircle,
+  UNPAID: XCircle,
+  PARTIAL: AlertTriangle,
+  OVERDUE: Clock,
+};
+
+const statusColor: Record<string, string> = {
+  PAID: 'text-green-600 bg-green-50 dark:bg-green-900/30 dark:text-green-400',
+  UNPAID: 'text-gray-600 bg-gray-50 dark:bg-gray-800 dark:text-gray-400',
+  PARTIAL: 'text-yellow-600 bg-yellow-50 dark:bg-yellow-900/30 dark:text-yellow-400',
+  OVERDUE: 'text-red-600 bg-red-50 dark:bg-red-900/30 dark:text-red-400',
+};
+
 export default function AdminStudentDetailPage(): React.ReactNode {
   const params = useParams();
   const router = useRouter();
@@ -87,7 +103,6 @@ export default function AdminStudentDetailPage(): React.ReactNode {
   const [error, setError] = useState<string>('');
   const [success, setSuccess] = useState<string>('');
 
-  // Edit states
   const [editTeacher, setEditTeacher] = useState<string>('');
   const [editCourse, setEditCourse] = useState<string>('');
   const [editStatus, setEditStatus] = useState<string>('');
@@ -134,21 +149,15 @@ export default function AdminStudentDetailPage(): React.ReactNode {
     setSaving(true);
     setError('');
     setSuccess('');
-
     try {
       const res = await fetch(`/api/admin/students/${studentId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          teacherId: editTeacher || null,
-          courseType: editCourse,
-          isActive: editStatus === 'active',
-        }),
+        body: JSON.stringify({ teacherId: editTeacher || null, courseType: editCourse, isActive: editStatus === 'active' }),
       });
-
       const data = await res.json();
       if (data.success) {
-        setSuccess('Student updated successfully!');
+        setSuccess('Student updated!');
         loadData();
         setTimeout(() => setSuccess(''), 3000);
       } else {
@@ -166,20 +175,13 @@ export default function AdminStudentDetailPage(): React.ReactNode {
       setError('Please fill payment details');
       return;
     }
-
     setSaving(true);
     try {
       const res = await fetch('/api/admin/payments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          studentId,
-          month: paymentMonth,
-          amount: parseFloat(paymentAmount),
-          status: paymentStatus,
-        }),
+        body: JSON.stringify({ studentId, month: paymentMonth, amount: parseFloat(paymentAmount), status: paymentStatus }),
       });
-
       const data = await res.json();
       if (data.success) {
         setSuccess('Payment added!');
@@ -216,7 +218,7 @@ export default function AdminStudentDetailPage(): React.ReactNode {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
-          <p className="text-gray-500">Loading student details...</p>
+          <p className="text-gray-500 dark:text-gray-400">Loading student details...</p>
         </div>
       </div>
     );
@@ -225,10 +227,8 @@ export default function AdminStudentDetailPage(): React.ReactNode {
   if (!student) {
     return (
       <div className="text-center py-12">
-        <p className="text-xl text-gray-500">Student not found</p>
-        <Link href="/admin/students" className="text-primary hover:underline mt-2 inline-block">
-          Back to Students
-        </Link>
+        <p className="text-xl text-gray-500 dark:text-gray-400">Student not found</p>
+        <Link href="/admin/students" className="text-primary hover:underline mt-2 inline-block">Back to Students</Link>
       </div>
     );
   }
@@ -245,13 +245,13 @@ export default function AdminStudentDetailPage(): React.ReactNode {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Link href="/admin/students">
-            <Button variant="ghost" size="icon">
-              <ArrowLeft className="h-5 w-5" />
+            <Button variant="ghost" size="icon" className="dark:hover:bg-gray-800">
+              <ArrowLeft className="h-5 w-5 dark:text-gray-300" />
             </Button>
           </Link>
           <div>
-            <h1 className="text-2xl font-bold">{student.fullName}</h1>
-            <p className="text-sm text-gray-500">{student.courseType.replace(/_/g, ' ')} • Age {student.age} • {student.country}</p>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{student.fullName}</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{student.courseType.replace(/_/g, ' ')} • Age {student.age} • {student.country}</p>
           </div>
         </div>
         <Button onClick={handleUpdateStudent} disabled={saving} className="bg-primary">
@@ -260,44 +260,32 @@ export default function AdminStudentDetailPage(): React.ReactNode {
         </Button>
       </div>
 
-      {success && (
-        <div className="bg-green-50 text-green-600 p-4 rounded-xl text-sm">{success}</div>
-      )}
-      {error && (
-        <div className="bg-red-50 text-red-600 p-4 rounded-xl text-sm">{error}</div>
-      )}
+      {success && <div className="bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 p-4 rounded-xl text-sm">{success}</div>}
+      {error && <div className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 p-4 rounded-xl text-sm">{error}</div>}
 
       {/* Info Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border-l-4 border-l-primary">
+        <Card className="border-l-4 border-l-primary dark:bg-gray-800 dark:border-gray-700">
           <CardContent className="pt-6">
-            <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
-              <User className="h-4 w-4" /> Teacher
-            </div>
-            <p className="font-semibold">{student.teacher?.fullName || 'Unassigned'}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Teacher</p>
+            <p className="font-semibold dark:text-white">{student.teacher?.fullName || 'Unassigned'}</p>
           </CardContent>
         </Card>
-        <Card className="border-l-4 border-l-accent">
+        <Card className="border-l-4 border-l-accent dark:bg-gray-800 dark:border-gray-700">
           <CardContent className="pt-6">
-            <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
-              <Star className="h-4 w-4" /> Average Score
-            </div>
-            <p className="font-semibold text-2xl">{averageScore}/10</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Average Score</p>
+            <p className="font-semibold text-2xl dark:text-white">{averageScore}/10</p>
           </CardContent>
         </Card>
-        <Card className="border-l-4 border-l-green-500">
+        <Card className="border-l-4 border-l-green-500 dark:bg-gray-800 dark:border-gray-700">
           <CardContent className="pt-6">
-            <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
-              <BookOpen className="h-4 w-4" /> Records
-            </div>
-            <p className="font-semibold text-2xl">{student.progress.length}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Records</p>
+            <p className="font-semibold text-2xl dark:text-white">{student.progress.length}</p>
           </CardContent>
         </Card>
-        <Card className="border-l-4 border-l-blue-500">
+        <Card className="border-l-4 border-l-blue-500 dark:bg-gray-800 dark:border-gray-700">
           <CardContent className="pt-6">
-            <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
-              <TrendingUp className="h-4 w-4" /> Status
-            </div>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Status</p>
             <Badge variant={student.user.isActive ? 'success' : 'secondary'}>
               {student.user.isActive ? 'Active' : 'Inactive'}
             </Badge>
@@ -305,37 +293,30 @@ export default function AdminStudentDetailPage(): React.ReactNode {
         </Card>
       </div>
 
-      {/* Edit Section */}
+      {/* Edit & Guardian */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Edit Student</CardTitle>
-          </CardHeader>
+        <Card className="dark:bg-gray-800 dark:border-gray-700">
+          <CardHeader><CardTitle className="text-lg dark:text-white">Edit Student</CardTitle></CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label>Assign Teacher</Label>
+              <Label className="dark:text-gray-300">Assign Teacher</Label>
               <Select value={editTeacher} onValueChange={setEditTeacher}>
-                <SelectTrigger>
+                <SelectTrigger className="dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                   <SelectValue placeholder="Select teacher" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="dark:bg-gray-800">
                   <SelectItem value="">No teacher</SelectItem>
-                  {teachers.map((teacher) => (
-                    <SelectItem key={teacher.id} value={teacher.id}>
-                      {teacher.fullName}
-                    </SelectItem>
-                  ))}
+                  {teachers.map((t) => <SelectItem key={t.id} value={t.id}>{t.fullName}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
-
             <div>
-              <Label>Course</Label>
+              <Label className="dark:text-gray-300">Course</Label>
               <Select value={editCourse} onValueChange={setEditCourse}>
-                <SelectTrigger>
+                <SelectTrigger className="dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                   <SelectValue placeholder="Select course" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="dark:bg-gray-800">
                   <SelectItem value="HIFZ">Hifz</SelectItem>
                   <SelectItem value="TAJWEED">Tajweed</SelectItem>
                   <SelectItem value="NAZIRAH">Nazirah</SelectItem>
@@ -348,14 +329,13 @@ export default function AdminStudentDetailPage(): React.ReactNode {
                 </SelectContent>
               </Select>
             </div>
-
             <div>
-              <Label>Status</Label>
+              <Label className="dark:text-gray-300">Status</Label>
               <Select value={editStatus} onValueChange={setEditStatus}>
-                <SelectTrigger>
+                <SelectTrigger className="dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="dark:bg-gray-800">
                   <SelectItem value="active">Active</SelectItem>
                   <SelectItem value="inactive">Inactive</SelectItem>
                 </SelectContent>
@@ -364,22 +344,19 @@ export default function AdminStudentDetailPage(): React.ReactNode {
           </CardContent>
         </Card>
 
-        {/* Guardian Info */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Guardian Information</CardTitle>
-          </CardHeader>
+        <Card className="dark:bg-gray-800 dark:border-gray-700">
+          <CardHeader><CardTitle className="text-lg dark:text-white">Guardian Information</CardTitle></CardHeader>
           <CardContent className="space-y-3">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 dark:text-gray-300">
               <User className="h-4 w-4 text-gray-400" />
               <span className="font-medium">{student.parentName}</span>
-              <span className="text-gray-500">({student.relationship})</span>
+              <span className="text-gray-500 dark:text-gray-400">({student.relationship})</span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 dark:text-gray-300">
               <Phone className="h-4 w-4 text-gray-400" />
               <span>{student.parentPhone}</span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 dark:text-gray-300">
               <Phone className="h-4 w-4 text-gray-400" />
               <span>WhatsApp: {student.parentWhatsapp}</span>
             </div>
@@ -387,10 +364,10 @@ export default function AdminStudentDetailPage(): React.ReactNode {
         </Card>
       </div>
 
-      {/* Payments Section */}
-      <Card>
+      {/* Payment History Table */}
+      <Card className="dark:bg-gray-800 dark:border-gray-700">
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-lg">Payments</CardTitle>
+          <CardTitle className="text-lg dark:text-white">Payment History</CardTitle>
           <Button size="sm" onClick={() => setShowPaymentForm(!showPaymentForm)}>
             <CreditCard className="h-4 w-4 mr-2" />
             Add Payment
@@ -398,32 +375,21 @@ export default function AdminStudentDetailPage(): React.ReactNode {
         </CardHeader>
         <CardContent>
           {showPaymentForm && (
-            <div className="mb-6 p-4 bg-gray-50 rounded-xl space-y-3">
+            <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl space-y-3">
               <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <Label>Month</Label>
-                  <Input 
-                    type="month" 
-                    value={paymentMonth} 
-                    onChange={(e) => setPaymentMonth(e.target.value)}
-                  />
+                  <Label className="dark:text-gray-300">Month</Label>
+                  <Input type="month" value={paymentMonth} onChange={(e) => setPaymentMonth(e.target.value)} className="dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
                 </div>
                 <div>
-                  <Label>Amount ($)</Label>
-                  <Input 
-                    type="number" 
-                    value={paymentAmount} 
-                    onChange={(e) => setPaymentAmount(e.target.value)}
-                    placeholder="50"
-                  />
+                  <Label className="dark:text-gray-300">Amount (ETB)</Label>
+                  <Input type="number" value={paymentAmount} onChange={(e) => setPaymentAmount(e.target.value)} placeholder="500" className="dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
                 </div>
                 <div>
-                  <Label>Status</Label>
+                  <Label className="dark:text-gray-300">Status</Label>
                   <Select value={paymentStatus} onValueChange={setPaymentStatus}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
+                    <SelectTrigger className="dark:bg-gray-700 dark:border-gray-600 dark:text-white"><SelectValue /></SelectTrigger>
+                    <SelectContent className="dark:bg-gray-800">
                       <SelectItem value="PAID">Paid</SelectItem>
                       <SelectItem value="UNPAID">Unpaid</SelectItem>
                       <SelectItem value="PARTIAL">Partial</SelectItem>
@@ -432,96 +398,105 @@ export default function AdminStudentDetailPage(): React.ReactNode {
                   </Select>
                 </div>
               </div>
-              <Button onClick={handleAddPayment} disabled={saving} size="sm">
-                Save Payment
-              </Button>
+              <Button onClick={handleAddPayment} disabled={saving} size="sm">Save Payment</Button>
             </div>
           )}
 
-          <div className="space-y-2">
-            {student.payments.length === 0 ? (
-              <p className="text-center text-gray-500 py-4">No payments recorded</p>
-            ) : (
-              student.payments.map((payment) => (
-                <div key={payment.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                  <div>
-                    <p className="font-medium">{payment.month}</p>
-                    <p className="text-sm text-gray-500">${payment.amount}</p>
-                  </div>
-                  <Select 
-                    value={payment.status} 
-                    onValueChange={(value) => handleUpdatePaymentStatus(payment.id, value)}
-                  >
-                    <SelectTrigger className="w-[120px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="PAID">Paid</SelectItem>
-                      <SelectItem value="UNPAID">Unpaid</SelectItem>
-                      <SelectItem value="PARTIAL">Partial</SelectItem>
-                      <SelectItem value="OVERDUE">Overdue</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              ))
-            )}
-          </div>
+          {student.payments.length === 0 ? (
+            <p className="text-center text-gray-500 dark:text-gray-400 py-8">No payments recorded</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b dark:border-gray-700">
+                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">Month</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">Amount</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">Status</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">Notes</th>
+                    <th className="text-right py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">Update</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {student.payments.map((payment) => {
+                    const Icon = statusIcon[payment.status] || CreditCard;
+                    return (
+                      <tr key={payment.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                        <td className="py-3 px-4">
+                          <p className="font-medium dark:text-white">{payment.month}</p>
+                        </td>
+                        <td className="py-3 px-4">
+                          <p className="font-medium dark:text-white">ETB {payment.amount}</p>
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${statusColor[payment.status]}`}>
+                            <Icon className="h-3.5 w-3.5" />
+                            {payment.status}
+                          </div>
+                        </td>
+                        <td className="py-3 px-4">
+                          <p className="text-sm text-gray-500 dark:text-gray-400">{payment.notes || '-'}</p>
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          <Select value={payment.status} onValueChange={(value) => handleUpdatePaymentStatus(payment.id, value)}>
+                            <SelectTrigger className="w-[110px] h-8 text-xs dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="dark:bg-gray-800">
+                              <SelectItem value="PAID">Paid</SelectItem>
+                              <SelectItem value="UNPAID">Unpaid</SelectItem>
+                              <SelectItem value="PARTIAL">Partial</SelectItem>
+                              <SelectItem value="OVERDUE">Overdue</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      {/* Current Status */}
+      {/* Current Progress Status */}
       {lastProgress && (
-        <Card className="bg-gradient-to-r from-primary to-secondary text-white">
+        <Card className="bg-gradient-to-r from-primary to-secondary text-white border-0">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-white/80 text-sm">Currently On</p>
-                <p className="text-2xl font-bold">Surah {lastProgress.surah}</p>
-              </div>
-              <div>
-                <p className="text-white/80 text-sm">Last Score</p>
-                <p className="text-2xl font-bold">{lastProgress.score}/10</p>
-              </div>
-              <div>
-                <p className="text-white/80 text-sm">Updated By</p>
-                <p className="text-2xl font-bold">{lastProgress.teacher.fullName}</p>
-              </div>
+              <div><p className="text-white/80 text-sm">Currently On</p><p className="text-2xl font-bold">Surah {lastProgress.surah}</p></div>
+              <div><p className="text-white/80 text-sm">Last Score</p><p className="text-2xl font-bold">{lastProgress.score}/10</p></div>
+              <div><p className="text-white/80 text-sm">Updated By</p><p className="text-2xl font-bold">{lastProgress.teacher.fullName}</p></div>
             </div>
           </CardContent>
         </Card>
       )}
 
       {/* Progress History */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Progress History</CardTitle>
-        </CardHeader>
+      <Card className="dark:bg-gray-800 dark:border-gray-700">
+        <CardHeader><CardTitle className="dark:text-white">Progress History</CardTitle></CardHeader>
         <CardContent>
           <div className="space-y-3">
             {student.progress.length === 0 ? (
-              <p className="text-center text-gray-500 py-4">No progress records</p>
+              <p className="text-center text-gray-500 dark:text-gray-400 py-4">No progress records</p>
             ) : (
               student.progress.map((record) => (
-                <div key={record.id} className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg">
+                <div key={record.id} className="flex items-start gap-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                   <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                     <BookOpen className="h-5 w-5 text-primary" />
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center justify-between">
-                      <h4 className="font-semibold">
-                        Surah {record.surah} - Ayah {record.ayahFrom}-{record.ayahTo}
-                      </h4>
+                      <h4 className="font-semibold dark:text-white">Surah {record.surah} - Ayah {record.ayahFrom}-{record.ayahTo}</h4>
                       <div className="flex items-center gap-1">
                         <Star className="h-4 w-4 text-accent fill-accent" />
-                        <span className="font-medium">{record.score}/10</span>
+                        <span className="font-medium dark:text-gray-200">{record.score}/10</span>
                       </div>
                     </div>
-                    <p className="text-sm text-gray-600 mt-1">{record.notes}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">{record.notes}</p>
                     <div className="flex items-center justify-between mt-2">
-                      <p className="text-xs text-gray-400">
-                        {new Date(record.createdAt).toLocaleDateString()}
-                      </p>
-                      <p className="text-xs text-gray-400">By: {record.teacher.fullName}</p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500">{new Date(record.createdAt).toLocaleDateString()}</p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500">By: {record.teacher.fullName}</p>
                     </div>
                   </div>
                 </div>

@@ -11,10 +11,8 @@ import {
   BookOpen,
   CreditCard,
   Calendar,
-  FileText,
   Settings,
   UserPlus,
-  ClipboardList,
   BookMarked,
 } from 'lucide-react';
 
@@ -65,7 +63,6 @@ const adminNavItems: NavItem[] = [
       },
     ],
   },
-  
   {
     title: 'Payments',
     href: '/admin/payments',
@@ -88,11 +85,11 @@ const adminNavItems: NavItem[] = [
   },
 ];
 
-export function AdminSidebar(): JSX.Element {
+export function AdminSidebar(): React.ReactNode {
   const pathname = usePathname();
 
   return (
-    <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-primary px-6 pb-4">
+    <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-primary dark:bg-gray-900 px-6 pb-4 border-r dark:border-gray-800">
       {/* Logo */}
       <div className="flex h-16 shrink-0 items-center">
         <Link href="/admin" className="flex items-center gap-2">
@@ -123,8 +120,8 @@ export function AdminSidebar(): JSX.Element {
                       className={cn(
                         'group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold transition-all duration-200',
                         isActive || isParentActive
-                          ? 'bg-white/10 text-white'
-                          : 'text-white/70 hover:text-white hover:bg-white/10'
+                          ? 'bg-white/10 text-white dark:bg-gray-800 dark:text-white'
+                          : 'text-white/70 hover:text-white hover:bg-white/10 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-800'
                       )}
                     >
                       <item.icon className="h-6 w-6 shrink-0" />
@@ -143,8 +140,8 @@ export function AdminSidebar(): JSX.Element {
                                 className={cn(
                                   'group flex gap-x-3 rounded-md p-2 text-sm leading-6 transition-all duration-200',
                                   isChildActive
-                                    ? 'bg-white/20 text-white'
-                                    : 'text-white/60 hover:text-white hover:bg-white/5'
+                                    ? 'bg-white/20 text-white dark:bg-gray-700 dark:text-white'
+                                    : 'text-white/60 hover:text-white hover:bg-white/5 dark:text-gray-500 dark:hover:text-gray-300 dark:hover:bg-gray-800'
                                 )}
                               >
                                 <child.icon className="h-5 w-5 shrink-0" />
@@ -165,7 +162,7 @@ export function AdminSidebar(): JSX.Element {
 
       {/* Footer */}
       <div className="mt-auto pb-4">
-        <p className="text-xs text-white/50 text-center">
+        <p className="text-xs text-white/50 dark:text-gray-500 text-center">
           Dar Al Huda Academy © {new Date().getFullYear()}
         </p>
       </div>

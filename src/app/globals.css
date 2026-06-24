@@ -1,3 +1,4 @@
+/* src/app/globals.css */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -24,12 +25,30 @@
     --radius: 0.5rem;
   }
 
+  .dark {
+    --background: #0F172A;
+    --foreground: #F8FAFC;
+    --card: #1E293B;
+    --card-foreground: #F8FAFC;
+    --primary: #14B8A6;
+    --primary-foreground: #0F172A;
+    --secondary: #10B981;
+    --secondary-foreground: #0F172A;
+    --accent: #F59E0B;
+    --accent-foreground: #0F172A;
+    --muted: #334155;
+    --muted-foreground: #94A3B8;
+    --destructive: #EF4444;
+    --destructive-foreground: #F8FAFC;
+    --border: #334155;
+    --input: #334155;
+    --ring: #14B8A6;
+  }
+
   * {
     border-color: var(--border);
     box-sizing: border-box;
   }
-
- 
 
   body {
     background-color: var(--background);
@@ -54,6 +73,10 @@
   background: #f1f1f1;
 }
 
+.dark ::-webkit-scrollbar-track {
+  background: #1E293B;
+}
+
 ::-webkit-scrollbar-thumb {
   background: #0F766E;
   border-radius: 4px;
@@ -68,7 +91,6 @@
   from {
     transform: translateY(100%);
   }
-
   to {
     transform: translateY(0);
   }
