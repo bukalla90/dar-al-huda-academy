@@ -7,26 +7,21 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Video, Plus, Calendar, Clock, X, Loader2 } from 'lucide-react';
-import { getTeacherSessions, getTeacherStudents, createClassSession } from '@/lib/action/class.action';
+import { Video, Plus, Calendar, Clock, X, Loader2, Users, Check } from 'lucide-react';
+import { getTeacherSessions, getTeacherStudents, createClassSession, markAttendance } from '@/lib/action/class.action';
 import { JitsiMeetingComponent } from '@/components/jitsi/jitsi-meeting';
+
+interface SessionStudent {
+  student: { id: string; fullName: string };
+  joinedAt: Date | null;
+}
 
 interface SessionType {
   id: string;
   scheduledAt: Date;
   meetingUrl: string;
   status: string;
-  student: {
-    id: string;
-    fullName: string;
-  };
+  sessionStudents: SessionStudent[];
 }
 
 interface StudentOption {
@@ -42,7 +37,7 @@ interface ActiveMeeting {
 
 export default function TeacherSchedulePage(): React.ReactNode {
   const [showForm, setShowForm] = useState<boolean>(false);
-  const [studentId, setStudentId] = useState<string>('');
+  const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
   const [date, setDate] = useState<string>('');
   const [time, setTime] = useState<string>('');
   const [sessions, setSessions] = useState<SessionType[]>([]);
@@ -57,7 +52,6 @@ export default function TeacherSchedulePage(): React.ReactNode {
     setPageLoading(true);
     setError('');
     
-    // Call server actions without teacherId - they'll get it from cookies server-side
     const [sessionsResult, studentsResult] = await Promise.all([
       getTeacherSessions(),
       getTeacherStudents(),
@@ -71,8 +65,6 @@ export default function TeacherSchedulePage(): React.ReactNode {
 
     if (studentsResult.success && studentsResult.students) {
       setStudents(studentsResult.students);
-    } else if (studentsResult.error) {
-      setError(studentsResult.error);
     }
 
     setPageLoading(false);
@@ -82,25 +74,32 @@ export default function TeacherSchedulePage(): React.ReactNode {
     loadData();
   }, [loadData]);
 
+  function toggleStudent(studentId: string): void {
+    setSelectedStudents(prev => 
+      prev.includes(studentId) 
+        ? prev.filter(id => id !== studentId)
+        : [...prev, studentId]
+    );
+  }
+
   async function handleCreateSession(): Promise<void> {
-    if (!studentId || !date || !time) {
-      setError('Please fill all fields');
+    if (selectedStudents.length === 0 || !date || !time) {
+      setError('Please select at least one student, date, and time');
       return;
     }
 
     setLoading(true);
     setError('');
 
-    // Server action gets teacherId from cookies
     const result = await createClassSession({
-      studentId,
+      studentIds: selectedStudents,
       date,
       time,
     });
 
     if (result.success) {
-      setSuccess('Meeting link created!');
-      setStudentId('');
+      setSuccess(`Meeting created for ${selectedStudents.length} student(s)!`);
+      setSelectedStudents([]);
       setDate('');
       setTime('');
       setShowForm(false);
@@ -113,24 +112,31 @@ export default function TeacherSchedulePage(): React.ReactNode {
     setLoading(false);
   }
 
-  function joinMeeting(meetingUrl: string, studentName: string): void {
-    const roomName = meetingUrl.replace('https://meet.jit.si/', '');
-    setActiveMeeting({ roomName, userName: studentName });
+  async function joinMeeting(session: SessionType): Promise<void> {
+    // Mark attendance
+    await markAttendance(session.id);
+    
+    const roomName = session.meetingUrl.replace('https://meet.jit.si/', '');
+    setActiveMeeting({ roomName, userName: 'Ustaz' });
   }
 
   function closeMeeting(): void {
     setActiveMeeting(null);
+    loadData(); // Refresh to update statuses
   }
 
-  const morningSessions = sessions.filter((s) => {
-    const hour = new Date(s.scheduledAt).getHours();
-    return hour < 12;
-  });
+  const morningSessions = sessions.filter((s) => new Date(s.scheduledAt).getHours() < 12);
+  const afternoonSessions = sessions.filter((s) => new Date(s.scheduledAt).getHours() >= 12);
 
-  const afternoonSessions = sessions.filter((s) => {
-    const hour = new Date(s.scheduledAt).getHours();
-    return hour >= 12;
-  });
+  function getStatusBadge(status: string): React.ReactNode {
+    const variants: Record<string, 'success' | 'warning' | 'secondary' | 'destructive'> = {
+      SCHEDULED: 'secondary',
+      LIVE: 'success',
+      COMPLETED: 'success',
+      MISSED: 'destructive',
+    };
+    return <Badge variant={variants[status] || 'secondary'}>{status}</Badge>;
+  }
 
   if (activeMeeting) {
     return (
@@ -147,7 +153,7 @@ export default function TeacherSchedulePage(): React.ReactNode {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
-          <p className="text-gray-500">Loading schedule...</p>
+          <p className="text-gray-500 dark:text-gray-400">Loading schedule...</p>
         </div>
       </div>
     );
@@ -157,167 +163,185 @@ export default function TeacherSchedulePage(): React.ReactNode {
     <div className="space-y-6 pb-20 lg:pb-0">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold">My Schedule</h1>
-          <p className="text-sm text-gray-500 mt-1">Manage class sessions and meetings</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">My Schedule</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Manage class sessions and meetings</p>
         </div>
         <Button onClick={() => setShowForm(!showForm)} className="bg-primary">
-          <Plus className="h-4 w-4 mr-2" />
-          New Session
+          <Plus className="h-4 w-4 mr-2" />New Session
         </Button>
       </div>
 
-      {success && (
-        <div className="bg-green-50 text-green-600 p-4 rounded-xl text-sm">{success}</div>
-      )}
-      {error && (
-        <div className="bg-red-50 text-red-600 p-4 rounded-xl text-sm">{error}</div>
-      )}
+      {success && <div className="bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 p-4 rounded-xl text-sm">{success}</div>}
+      {error && <div className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 p-4 rounded-xl text-sm">{error}</div>}
 
+      {/* Create Session Form */}
       {showForm && (
-        <Card className="border-2 border-primary/20">
+        <Card className="border-2 border-primary/20 dark:bg-gray-800 dark:border-gray-700">
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <Video className="h-5 w-5 text-primary" />
-              Create New Session
+            <CardTitle className="flex items-center gap-2 dark:text-white">
+              <Video className="h-5 w-5 text-primary" />Create New Session
             </CardTitle>
-            <Button variant="ghost" size="icon" onClick={() => setShowForm(false)}>
+            <Button variant="ghost" size="icon" onClick={() => setShowForm(false)} className="dark:hover:bg-gray-700">
               <X className="h-4 w-4" />
             </Button>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div>
-                <Label>Select Student</Label>
-                <Select value={studentId} onValueChange={setStudentId}>
-                  <SelectTrigger className="bg-white">
-                    <SelectValue placeholder={students.length === 0 ? 'No students assigned' : 'Choose student'} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {students.length === 0 ? (
-                      <div className="p-2 text-sm text-gray-500 text-center">
-                        No students assigned to you yet
-                      </div>
-                    ) : (
-                      students.map((student) => (
-                        <SelectItem key={student.id} value={student.id}>
-                          {student.fullName} - {student.courseType.replace(/_/g, ' ')}
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
-                {students.length === 0 && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    Admin needs to assign students to you first
-                  </p>
-                )}
+                <Label className="dark:text-gray-300">Select Students ({selectedStudents.length} selected)</Label>
+                <div className="max-h-48 overflow-y-auto space-y-1 mt-2 border dark:border-gray-700 rounded-lg p-2">
+                  {students.length === 0 ? (
+                    <p className="text-sm text-gray-500 text-center py-4">No students assigned</p>
+                  ) : (
+                    students.map((student) => (
+                      <button
+                        key={student.id}
+                        type="button"
+                        onClick={() => toggleStudent(student.id)}
+                        className={`w-full flex items-center gap-3 p-2.5 rounded-lg transition-colors text-left ${
+                          selectedStudents.includes(student.id)
+                            ? 'bg-primary/10 border border-primary/30 dark:bg-primary/20'
+                            : 'hover:bg-gray-50 dark:hover:bg-gray-700/50 border border-transparent'
+                        }`}
+                      >
+                        <div className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 ${
+                          selectedStudents.includes(student.id)
+                            ? 'bg-primary border-primary'
+                            : 'border-gray-300 dark:border-gray-600'
+                        }`}>
+                          {selectedStudents.includes(student.id) && <Check className="h-3 w-3 text-white" />}
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium dark:text-white">{student.fullName}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">{student.courseType.replace(/_/g, ' ')}</p>
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </div>
               </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label>Date</Label>
-                  <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+                  <Label className="dark:text-gray-300">Date</Label>
+                  <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
                 </div>
                 <div>
-                  <Label>Time</Label>
-                  <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+                  <Label className="dark:text-gray-300">Time</Label>
+                  <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
                 </div>
               </div>
-              <Button 
-                onClick={handleCreateSession} 
-                disabled={loading || students.length === 0} 
-                className="w-full bg-primary"
-              >
-                {loading ? 'Creating...' : 'Generate Meeting Link & Save'}
+
+              <Button onClick={handleCreateSession} disabled={loading || selectedStudents.length === 0} className="w-full bg-primary">
+                {loading ? 'Creating...' : `Create Session for ${selectedStudents.length} student(s)`}
               </Button>
             </div>
           </CardContent>
         </Card>
       )}
 
-      <Card>
-        <CardHeader className="border-b bg-gradient-to-r from-amber-50 to-yellow-50">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Calendar className="h-5 w-5 text-amber-600" />
-            Morning Sessions ({morningSessions.length})
+      {/* Morning Sessions */}
+      <Card className="dark:bg-gray-800 dark:border-gray-700">
+        <CardHeader className="border-b dark:border-gray-700 bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20">
+          <CardTitle className="flex items-center gap-2 text-lg dark:text-white">
+            <Calendar className="h-5 w-5 text-amber-600" />Morning Sessions ({morningSessions.length})
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           {morningSessions.length > 0 ? (
-            <div className="divide-y">
+            <div className="divide-y dark:divide-gray-700">
               {morningSessions.map((session) => (
-                <div key={session.id} className="p-4 flex items-center justify-between hover:bg-gray-50">
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                <div key={session.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
                       <Video className="h-5 w-5 text-primary" />
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium dark:text-white text-sm">
+                            {new Date(session.scheduledAt).toLocaleDateString()} at{' '}
+                            {new Date(session.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                          {getStatusBadge(session.status)}
+                        </div>
+                        <div className="flex items-center gap-1 mt-1">
+                          <Users className="h-3 w-3 text-gray-400" />
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                            {session.sessionStudents.map(s => s.student.fullName).join(', ')}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 mt-1">
+                          {session.sessionStudents.map((ss) => (
+                            <span key={ss.student.id} className={`text-xs ${ss.joinedAt ? 'text-green-600 dark:text-green-400' : 'text-gray-400'}`}>
+                              {ss.student.fullName}: {ss.joinedAt ? '✓ Joined' : 'Pending'}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-medium">{session.student.fullName}</p>
-                      <p className="text-sm text-gray-500">
-                        {new Date(session.scheduledAt).toLocaleDateString()} at{' '}
-                        {new Date(session.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Badge variant="success">Scheduled</Badge>
-                    <Button 
-                      size="sm" 
-                      className="bg-primary"
-                      onClick={() => joinMeeting(session.meetingUrl, session.student.fullName)}
-                    >
-                      <Video className="h-4 w-4 mr-1" />
-                      Join
-                    </Button>
+                    {(session.status === 'SCHEDULED' || session.status === 'LIVE') && (
+                      <Button size="sm" className="bg-primary" onClick={() => joinMeeting(session)}>
+                        <Video className="h-4 w-4 mr-1" />Join
+                      </Button>
+                    )}
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="p-8 text-center text-gray-500">No morning sessions</div>
+            <div className="p-8 text-center text-gray-500 dark:text-gray-400">No morning sessions</div>
           )}
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader className="border-b bg-gradient-to-r from-blue-50 to-indigo-50">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Clock className="h-5 w-5 text-blue-600" />
-            Afternoon Sessions ({afternoonSessions.length})
+      {/* Afternoon Sessions */}
+      <Card className="dark:bg-gray-800 dark:border-gray-700">
+        <CardHeader className="border-b dark:border-gray-700 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20">
+          <CardTitle className="flex items-center gap-2 text-lg dark:text-white">
+            <Clock className="h-5 w-5 text-blue-600" />Afternoon Sessions ({afternoonSessions.length})
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           {afternoonSessions.length > 0 ? (
-            <div className="divide-y">
+            <div className="divide-y dark:divide-gray-700">
               {afternoonSessions.map((session) => (
-                <div key={session.id} className="p-4 flex items-center justify-between hover:bg-gray-50">
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                <div key={session.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
                       <Video className="h-5 w-5 text-primary" />
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium dark:text-white text-sm">
+                            {new Date(session.scheduledAt).toLocaleDateString()} at{' '}
+                            {new Date(session.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                          {getStatusBadge(session.status)}
+                        </div>
+                        <div className="flex items-center gap-1 mt-1">
+                          <Users className="h-3 w-3 text-gray-400" />
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                            {session.sessionStudents.map(s => s.student.fullName).join(', ')}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 mt-1">
+                          {session.sessionStudents.map((ss) => (
+                            <span key={ss.student.id} className={`text-xs ${ss.joinedAt ? 'text-green-600 dark:text-green-400' : 'text-gray-400'}`}>
+                              {ss.student.fullName}: {ss.joinedAt ? '✓ Joined' : 'Pending'}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-medium">{session.student.fullName}</p>
-                      <p className="text-sm text-gray-500">
-                        {new Date(session.scheduledAt).toLocaleDateString()} at{' '}
-                        {new Date(session.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Badge variant="success">Scheduled</Badge>
-                    <Button 
-                      size="sm" 
-                      className="bg-primary"
-                      onClick={() => joinMeeting(session.meetingUrl, session.student.fullName)}
-                    >
-                      <Video className="h-4 w-4 mr-1" />
-                      Join
-                    </Button>
+                    {(session.status === 'SCHEDULED' || session.status === 'LIVE') && (
+                      <Button size="sm" className="bg-primary" onClick={() => joinMeeting(session)}>
+                        <Video className="h-4 w-4 mr-1" />Join
+                      </Button>
+                    )}
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="p-8 text-center text-gray-500">No afternoon sessions</div>
+            <div className="p-8 text-center text-gray-500 dark:text-gray-400">No afternoon sessions</div>
           )}
         </CardContent>
       </Card>

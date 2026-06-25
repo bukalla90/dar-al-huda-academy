@@ -21,6 +21,7 @@ const teacherSchema = z.object({
   fullName: z.string().min(2, 'Full name is required'),
   email: z.string().email('Invalid email address'),
   phone: z.string().min(7, 'Phone number must be at least 7 digits'),
+  salary: z.string().optional(),
   bio: z.string().optional(),
 });
 
@@ -63,7 +64,10 @@ export default function CreateTeacherPage(): React.ReactNode {
     setLoading(true);
     setError('');
 
-    const result = await createTeacher(data);
+    const result = await createTeacher({
+      ...data,
+      salary: data.salary ? parseFloat(data.salary) : undefined,
+    });
 
     if (result.success) {
       router.push('/admin/teachers');
@@ -114,20 +118,17 @@ export default function CreateTeacherPage(): React.ReactNode {
                   />
                   {checkingUsername && (
                     <p className="text-gray-500 dark:text-gray-400 text-xs mt-1 flex items-center gap-1">
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                      Checking username...
+                      <Loader2 className="h-3 w-3 animate-spin" /> Checking username...
                     </p>
                   )}
                   {usernameAvailable === true && (
                     <p className="text-green-500 text-xs mt-1 flex items-center gap-1">
-                      <Check className="h-3 w-3" />
-                      Username is available
+                      <Check className="h-3 w-3" /> Username is available
                     </p>
                   )}
                   {usernameAvailable === false && (
                     <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
-                      <X className="h-3 w-3" />
-                      Username is already taken
+                      <X className="h-3 w-3" /> Username is already taken
                     </p>
                   )}
                   {errors.username && <p className="text-red-500 text-xs mt-1">{errors.username.message}</p>}
@@ -142,11 +143,8 @@ export default function CreateTeacherPage(): React.ReactNode {
                       autoComplete="new-password"
                       className="dark:bg-gray-700 dark:border-gray-600 dark:text-white pr-10"
                     />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                    >
+                    <button type="button" onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
@@ -173,6 +171,10 @@ export default function CreateTeacherPage(): React.ReactNode {
                   <Input {...register('phone')} placeholder="Enter phone" autoComplete="off" className="dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
                   {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone.message}</p>}
                 </div>
+              </div>
+              <div>
+                <Label className="dark:text-gray-300">Salary (ETB/month)</Label>
+                <Input {...register('salary')} type="number" placeholder="Enter monthly salary" className="dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
               </div>
               <div>
                 <Label className="dark:text-gray-300">Bio (Optional)</Label>

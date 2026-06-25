@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma';
 import { compare } from 'bcryptjs';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { checkLoginRateLimit, getClientIP } from '@/lib/rate-limit';
 
 interface LoginData {
   username: string;
@@ -18,6 +19,16 @@ export async function loginUser(data: LoginData): Promise<{
   redirectUrl?: string;
 }> {
   try {
+    // Get client IP
+    const clientIP = await getClientIP();
+
+    // Check rate limit for both username and IP
+    const rateLimitResult = await checkLoginRateLimit(data.username, clientIP);
+    
+    if (!rateLimitResult.success) {
+      return { success: false, error: rateLimitResult.error };
+    }
+
     const user = await prisma.user.findUnique({
       where: { username: data.username },
       include: {
@@ -27,7 +38,10 @@ export async function loginUser(data: LoginData): Promise<{
     });
 
     if (!user) {
-      return { success: false, error: 'Invalid username or password' };
+      return { 
+        success: false, 
+        error: `Invalid username or password. ${rateLimitResult.remaining} attempts remaining.` 
+      };
     }
 
     if (!user.isActive) {
@@ -36,13 +50,17 @@ export async function loginUser(data: LoginData): Promise<{
 
     const isValidPassword = await compare(data.password, user.passwordHash);
     if (!isValidPassword) {
-      return { success: false, error: 'Invalid username or password' };
+      return { 
+        success: false, 
+        error: `Invalid username or password. ${rateLimitResult.remaining} attempts remaining.` 
+      };
     }
 
     if (user.role !== data.role) {
       return { success: false, error: `This account is not a ${data.role.toLowerCase()}. Please select the correct role.` };
     }
 
+    // Successful login - set cookies
     const cookieStore = await cookies();
     
     cookieStore.set('userId', user.id, {
@@ -93,7 +111,6 @@ export async function loginUser(data: LoginData): Promise<{
   }
 }
 
-// FIXED: Logout action that clears cookies and redirects
 export async function logoutUser(): Promise<void> {
   'use server';
   

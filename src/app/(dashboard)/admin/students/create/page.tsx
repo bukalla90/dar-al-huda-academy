@@ -103,7 +103,7 @@ export default function CreateStudentPage(): React.ReactNode {
   }
 
   return (
-    <div className="space-y-6 pb-20 lg:pb-0 min-h-screen bg-white dark:bg-gray-950">
+    <div className="space-y-6 pb-20 lg:pb-0">
       <div className="flex items-center gap-4">
         <Link href="/admin/students">
           <Button variant="ghost" size="icon" className="dark:hover:bg-gray-800">

@@ -1,9 +1,6 @@
 // src/types/index.ts
 export type UserRole = 'ADMIN' | 'TEACHER' | 'STUDENT';
 
-
-
-
 export type CourseType = 
   | 'HIFZ' 
   | 'TAJWEED' 
@@ -21,6 +18,8 @@ export type AttendanceStatus = 'PRESENT' | 'ABSENT';
 
 export type ApplicationStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED';
 
+export type SessionStatus = 'SCHEDULED' | 'LIVE' | 'COMPLETED' | 'MISSED';
+
 // Course data structure for display
 export interface CourseData {
   id: CourseType;
@@ -28,7 +27,7 @@ export interface CourseData {
   titleAm: string;
   descriptionEn: string;
   descriptionAm: string;
-  icon: string; // Lucide icon name
+  icon: string;
   category: 'QURAN' | 'ISLAMIC_STUDIES';
 }
 
@@ -49,6 +48,7 @@ export interface Teacher {
   email: string;
   phone: string;
   bio: string | null;
+  salary: number | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -86,12 +86,19 @@ export interface Application {
 export interface ClassSession {
   id: string;
   teacherId: string;
-  studentId: string;
   meetingUrl: string;
   scheduledAt: Date;
-  status: string;
+  status: SessionStatus;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface SessionStudent {
+  id: string;
+  sessionId: string;
+  studentId: string;
+  joinedAt: Date | null;
+  leftAt: Date | null;
 }
 
 export interface Attendance {
@@ -130,8 +137,8 @@ export interface Payment {
   id: string;
   studentId: string;
   amount: number;
-  currency: string; // Default: "USD" or "ETB"
-  month: string; // Format: "2024-01"
+  currency: string;
+  month: string;
   status: PaymentStatus;
   notes: string | null;
   createdAt: Date;

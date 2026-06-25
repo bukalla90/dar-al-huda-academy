@@ -1,8 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
@@ -11,9 +9,6 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
-// prisma/schema.prisma
-
-
 
 enum UserRole {
   ADMIN
@@ -32,6 +27,7 @@ enum CourseType {
   ARABIC_LANGUAGE
   ISLAMIC_MANNERS
 }
+
 enum PaymentStatus {
   PAID
   UNPAID
@@ -79,10 +75,11 @@ model Teacher {
   email     String   @unique
   phone     String
   bio       String?
+  salary    Float?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   students  Student[]
   materials Material[]
   progress  StudentProgress[]
@@ -105,13 +102,13 @@ model Student {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
-  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  teacher     Teacher?          @relation(fields: [teacherId], references: [id])
-  progress    StudentProgress[]
-  payments    Payment[]
-  sessions    ClassSession[]
-  attendances Attendance[]      // Add this line
-  materials   Material[]        // Add this line
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  teacher          Teacher?          @relation(fields: [teacherId], references: [id])
+  progress         StudentProgress[]
+  payments         Payment[]
+  attendances      Attendance[]
+  materials        Material[]
+  sessionStudents  SessionStudent[]
 }
 
 model Application {
@@ -130,16 +127,28 @@ model Application {
 model ClassSession {
   id          String   @id @default(cuid())
   teacherId   String
-  studentId   String
   meetingUrl  String
   scheduledAt DateTime
   status      String   @default("SCHEDULED")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  teacher     Teacher       @relation(fields: [teacherId], references: [id])
-  student     Student       @relation(fields: [studentId], references: [id])
-  attendances Attendance[]
+  teacher         Teacher          @relation(fields: [teacherId], references: [id])
+  attendances     Attendance[]
+  sessionStudents SessionStudent[]
+}
+
+model SessionStudent {
+  id        String   @id @default(cuid())
+  sessionId String
+  studentId String
+  joinedAt  DateTime?
+  leftAt    DateTime?
+
+  session ClassSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  student Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, studentId])
 }
 
 model Attendance {

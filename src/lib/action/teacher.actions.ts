@@ -47,6 +47,7 @@ export async function createTeacher(data: CreateTeacherDTO): Promise<{
           fullName: validated.fullName,
           email: validated.email,
           phone: validated.phone,
+          salary: validated.salary || null,
           bio: validated.bio || null,
         },
       });
@@ -57,11 +58,11 @@ export async function createTeacher(data: CreateTeacherDTO): Promise<{
     revalidatePath('/admin/teachers');
     return { success: true, teacherId: teacher.id };
   } catch (error) {
+    console.error('Create teacher error:', error);
     return { success: false, error: 'Failed to create teacher.' };
   }
 }
 
-// ADD THIS EXPORT
 export async function getTeachers(): Promise<{ 
   success: boolean; 
   teachers?: Array<{
@@ -69,6 +70,7 @@ export async function getTeachers(): Promise<{
     fullName: string;
     email: string;
     phone: string;
+    salary: number | null;
     bio: string | null;
     user: {
       id: string;

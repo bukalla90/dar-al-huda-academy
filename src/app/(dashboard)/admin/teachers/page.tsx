@@ -11,12 +11,14 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { UserPlus, Users, Mail, Phone } from 'lucide-react';
+import { UserPlus, Users, Mail, Phone, DollarSign } from 'lucide-react';
 import { getTeachers } from '@/lib/action/teacher.actions';
 
 export default async function TeachersPage(): Promise<React.ReactNode> {
   const result = await getTeachers();
   const teachers = result.success ? result.teachers : [];
+
+  const totalSalary = teachers?.reduce((sum, t) => sum + (t.salary || 0), 0) || 0;
 
   return (
     <div className="space-y-6 pb-20 lg:pb-0">
@@ -44,6 +46,26 @@ export default async function TeachersPage(): Promise<React.ReactNode> {
             <div className="text-2xl font-bold dark:text-white">{teachers?.length || 0}</div>
           </CardContent>
         </Card>
+        <Card className="dark:bg-gray-800 dark:border-gray-700">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium dark:text-gray-300">Active Teachers</CardTitle>
+            <Users className="h-4 w-4 text-gray-400" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold dark:text-white">
+              {teachers?.filter(t => t.user.isActive).length || 0}
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="dark:bg-gray-800 dark:border-gray-700">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium dark:text-gray-300">Total Monthly Salary</CardTitle>
+            <DollarSign className="h-4 w-4 text-gray-400" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold dark:text-white">ETB {totalSalary.toLocaleString()}</div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Mobile Cards */}
@@ -60,18 +82,10 @@ export default async function TeachersPage(): Promise<React.ReactNode> {
                 </div>
               </div>
               <div className="space-y-2 text-sm text-gray-600 dark:text-gray-300">
-                <div className="flex items-center gap-2">
-                  <Mail className="h-4 w-4" />
-                  {teacher.email}
-                </div>
-                <div className="flex items-center gap-2">
-                  <Phone className="h-4 w-4" />
-                  {teacher.phone}
-                </div>
-                <div className="flex items-center gap-2">
-                  <Users className="h-4 w-4" />
-                  {teacher.students.length} students
-                </div>
+                <div className="flex items-center gap-2"><Mail className="h-4 w-4" />{teacher.email}</div>
+                <div className="flex items-center gap-2"><Phone className="h-4 w-4" />{teacher.phone}</div>
+                <div className="flex items-center gap-2"><Users className="h-4 w-4" />{teacher.students.length} students</div>
+                <div className="flex items-center gap-2"><DollarSign className="h-4 w-4" />ETB {teacher.salary?.toLocaleString() || 'Not set'}</div>
               </div>
             </CardContent>
           </Card>
@@ -89,6 +103,7 @@ export default async function TeachersPage(): Promise<React.ReactNode> {
                   <TableHead className="dark:text-gray-300">Email</TableHead>
                   <TableHead className="dark:text-gray-300">Phone</TableHead>
                   <TableHead className="dark:text-gray-300">Students</TableHead>
+                  <TableHead className="dark:text-gray-300">Salary</TableHead>
                   <TableHead className="dark:text-gray-300">Status</TableHead>
                 </TableRow>
               </TableHeader>
@@ -99,6 +114,7 @@ export default async function TeachersPage(): Promise<React.ReactNode> {
                     <TableCell className="dark:text-gray-300">{teacher.email}</TableCell>
                     <TableCell className="dark:text-gray-300">{teacher.phone}</TableCell>
                     <TableCell className="dark:text-gray-300">{teacher.students.length}</TableCell>
+                    <TableCell className="dark:text-gray-300">ETB {teacher.salary?.toLocaleString() || '-'}</TableCell>
                     <TableCell>
                       <Badge variant={teacher.user.isActive ? 'success' : 'secondary'}>
                         {teacher.user.isActive ? 'Active' : 'Inactive'}

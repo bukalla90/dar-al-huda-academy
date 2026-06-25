@@ -36,12 +36,13 @@ import {
 export default async function StudentsPage({
   searchParams,
 }: {
-  searchParams: { page?: string; search?: string; course?: string; status?: string };
+  searchParams: Promise<{ page?: string; search?: string; course?: string; status?: string }>;
 }): Promise<React.ReactNode> {
-  const page = Number(searchParams.page) || 1;
-  const search = searchParams.search || '';
-  const course = searchParams.course || '';
-  const status = searchParams.status || '';
+  const params = await searchParams;
+  const page = Number(params.page) || 1;
+  const search = params.search || '';
+  const course = params.course || '';
+  const status = params.status || '';
 
   const result = await getStudentsPaginated(page, 10, {
     search: search || undefined,

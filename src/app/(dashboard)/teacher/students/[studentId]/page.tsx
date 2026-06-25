@@ -49,7 +49,6 @@ export default function StudentProgressPage(): React.ReactNode {
   const [loading, setLoading] = useState<boolean>(false);
   const [pageLoading, setPageLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
-  const [studentName, setStudentName] = useState<string>('');
 
   const loadData = useCallback(async (): Promise<void> => {
     if (!studentId) return;
@@ -68,12 +67,6 @@ export default function StudentProgressPage(): React.ReactNode {
       setStatus(statusResult.status);
     }
 
-    // Get teacherId from cookie
-    const teacherId = document.cookie
-      .split('; ')
-      .find(row => row.startsWith('teacherId='))
-      ?.split('=')[1];
-
     setPageLoading(false);
   }, [studentId]);
 
@@ -87,28 +80,17 @@ export default function StudentProgressPage(): React.ReactNode {
       return;
     }
 
-    const teacherId = document.cookie
-      .split('; ')
-      .find(row => row.startsWith('teacherId='))
-      ?.split('=')[1];
-
-    if (!teacherId) {
-      setError('Teacher ID not found. Please login again.');
-      return;
-    }
-
     setLoading(true);
     setError('');
 
+    // Don't send teacherId - server action gets it from cookies
     const result = await createProgress({
       studentId,
-      teacherId,
       surah,
       ayahFrom: parseInt(ayahFrom),
       ayahTo: parseInt(ayahTo),
       score: parseInt(score),
       notes,
-      type: 'MEMORIZATION',
     });
 
     if (result.success) {
@@ -131,7 +113,7 @@ export default function StudentProgressPage(): React.ReactNode {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
-          <p className="text-gray-500">Loading student progress...</p>
+          <p className="text-gray-500 dark:text-gray-400">Loading student progress...</p>
         </div>
       </div>
     );
@@ -143,13 +125,13 @@ export default function StudentProgressPage(): React.ReactNode {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Link href="/teacher/students">
-            <Button variant="ghost" size="icon">
-              <ArrowLeft className="h-5 w-5" />
+            <Button variant="ghost" size="icon" className="dark:hover:bg-gray-800">
+              <ArrowLeft className="h-5 w-5 dark:text-gray-300" />
             </Button>
           </Link>
           <div>
-            <h1 className="text-2xl font-bold">Student Progress</h1>
-            <p className="text-sm text-gray-500">Track memorization and recitation</p>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Student Progress</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Track memorization and recitation</p>
           </div>
         </div>
         <Button onClick={() => setShowForm(!showForm)} className="bg-primary">
@@ -190,9 +172,9 @@ export default function StudentProgressPage(): React.ReactNode {
 
       {/* Add Progress Form */}
       {showForm && (
-        <Card className="border-2 border-primary/20">
+        <Card className="border-2 border-primary/20 dark:bg-gray-800 dark:border-gray-700">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 dark:text-white">
               <BookOpen className="h-5 w-5 text-primary" />
               Add Progress Record
             </CardTitle>
@@ -200,43 +182,46 @@ export default function StudentProgressPage(): React.ReactNode {
           <CardContent>
             <div className="space-y-4">
               {error && (
-                <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm">{error}</div>
+                <div className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 p-3 rounded-md text-sm">{error}</div>
               )}
 
               <div>
-                <Label>Surah *</Label>
+                <Label className="dark:text-gray-300">Surah *</Label>
                 <Input 
                   value={surah} 
                   onChange={(e) => setSurah(e.target.value)}
                   placeholder="e.g., Al-Baqarah"
+                  className="dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label>Ayah From *</Label>
+                  <Label className="dark:text-gray-300">Ayah From *</Label>
                   <Input 
                     type="number"
                     value={ayahFrom} 
                     onChange={(e) => setAyahFrom(e.target.value)}
                     placeholder="1"
                     min="1"
+                    className="dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                   />
                 </div>
                 <div>
-                  <Label>Ayah To *</Label>
+                  <Label className="dark:text-gray-300">Ayah To *</Label>
                   <Input 
                     type="number"
                     value={ayahTo} 
                     onChange={(e) => setAyahTo(e.target.value)}
                     placeholder="5"
                     min="1"
+                    className="dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                   />
                 </div>
               </div>
               
               <div>
-                <Label>Score (1-10) *</Label>
+                <Label className="dark:text-gray-300">Score (1-10) *</Label>
                 <div className="flex gap-2 mt-2 flex-wrap">
                   {[1,2,3,4,5,6,7,8,9,10].map((num) => (
                     <button
@@ -246,7 +231,7 @@ export default function StudentProgressPage(): React.ReactNode {
                       className={`w-10 h-10 rounded-full font-medium transition-all ${
                         score === String(num)
                           ? 'bg-primary text-white scale-110 shadow-lg'
-                          : 'bg-gray-100 hover:bg-gray-200'
+                          : 'bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-300'
                       }`}
                     >
                       {num}
@@ -256,12 +241,13 @@ export default function StudentProgressPage(): React.ReactNode {
               </div>
 
               <div>
-                <Label>Notes</Label>
+                <Label className="dark:text-gray-300">Notes</Label>
                 <Textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="Add feedback or notes..."
                   rows={3}
+                  className="dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 />
               </div>
 
@@ -280,18 +266,18 @@ export default function StudentProgressPage(): React.ReactNode {
 
       {/* Progress History */}
       <div className="space-y-3">
-        <h3 className="font-semibold text-lg">Progress History</h3>
+        <h3 className="font-semibold text-lg dark:text-white">Progress History</h3>
         
         {progress.length === 0 ? (
-          <Card>
-            <CardContent className="py-8 text-center text-gray-500">
-              <BookOpen className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+          <Card className="dark:bg-gray-800 dark:border-gray-700">
+            <CardContent className="py-8 text-center text-gray-500 dark:text-gray-400">
+              <BookOpen className="h-12 w-12 mx-auto mb-3 text-gray-300 dark:text-gray-600" />
               <p>No progress records yet</p>
             </CardContent>
           </Card>
         ) : (
           progress.map((record) => (
-            <Card key={record.id} className="hover:shadow-md transition-shadow">
+            <Card key={record.id} className="hover:shadow-md transition-shadow dark:bg-gray-800 dark:border-gray-700">
               <CardContent className="pt-4">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
@@ -301,14 +287,14 @@ export default function StudentProgressPage(): React.ReactNode {
                         <span className="text-sm font-medium">{record.score}/10</span>
                       </div>
                     </div>
-                    <h3 className="font-semibold text-lg">
+                    <h3 className="font-semibold text-lg dark:text-white">
                       Surah {record.surah} - Ayah {record.ayahFrom}-{record.ayahTo}
                     </h3>
                     {record.notes && (
-                      <p className="text-sm text-gray-600 mt-2">{record.notes}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-300 mt-2">{record.notes}</p>
                     )}
                     <div className="flex items-center justify-between mt-3">
-                      <p className="text-xs text-gray-400">
+                      <p className="text-xs text-gray-400 dark:text-gray-500">
                         {new Date(record.createdAt).toLocaleDateString()} • By {record.teacher.fullName}
                       </p>
                     </div>

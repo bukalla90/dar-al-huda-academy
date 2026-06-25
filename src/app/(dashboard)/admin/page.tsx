@@ -2,19 +2,13 @@
 import { Suspense } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
-  Users, 
-  GraduationCap, 
-  CreditCard, 
-  Calendar, 
-  ClipboardList, 
-  BookOpen,
-  Activity,
-  UserCheck,
-  UserX,
+  Users, GraduationCap, CreditCard, Calendar, ClipboardList, 
+  BookOpen, Activity, UserCheck, UserX, TrendingUp, TrendingDown, DollarSign,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { formatDate } from '@/lib/utils';
 import { getChartData, getDashboardStats, getRecentActivity } from '@/lib/action/admin.actions';
+import Link from 'next/link';
 
 function DashboardSkeleton(): React.ReactNode {
   return (
@@ -30,7 +24,7 @@ function DashboardSkeleton(): React.ReactNode {
 
 interface StatCardProps {
   title: string;
-  value: number | string;
+  value: string;
   icon: typeof Users;
   gradient: string;
   iconBg: string;
@@ -45,7 +39,7 @@ function StatCard({ title, value, icon: Icon, gradient, iconBg, iconColor }: Sta
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{title}</p>
-            <p className="text-3xl font-bold text-gray-900 dark:text-white mt-1">{value}</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{value}</p>
           </div>
           <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${iconBg}`}>
             <Icon className={`h-6 w-6 ${iconColor}`} />
@@ -56,46 +50,27 @@ function StatCard({ title, value, icon: Icon, gradient, iconBg, iconColor }: Sta
   );
 }
 
-interface ActivityItemProps {
-  type: 'STUDENT' | 'TEACHER' | 'PAYMENT' | 'APPLICATION';
-  title: string;
-  description: string;
-  timestamp: Date;
-  status: string;
-}
-
-function ActivityItem({ type, title, description, timestamp, status }: ActivityItemProps): React.ReactNode {
-  const typeConfig = {
-    STUDENT: { dot: 'bg-blue-500', border: 'border-l-blue-500' },
-    TEACHER: { dot: 'bg-violet-500', border: 'border-l-violet-500' },
-    PAYMENT: { dot: 'bg-green-500', border: 'border-l-green-500' },
-    APPLICATION: { dot: 'bg-orange-500', border: 'border-l-orange-500' },
-  };
-
-  return (
-    <div className={`flex items-start gap-3 p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors border-l-2 ${typeConfig[type].border}`}>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-gray-900 dark:text-white">{title}</p>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{description}</p>
-        <p className="text-xs text-gray-400 dark:text-gray-500 mt-1.5">{formatDate(timestamp)}</p>
-      </div>
-      <Badge variant="outline" className="text-xs shrink-0 dark:border-gray-600 dark:text-gray-300">
-        {status}
-      </Badge>
-    </div>
-  );
-}
-
-export default async function AdminDashboardPage(): Promise<React.ReactNode> {
+export default async function AdminDashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ year?: string }>;
+}): Promise<React.ReactNode> {
+  const params = await searchParams;
+  const selectedYear = params.year || new Date().getFullYear().toString();
+  
   const [statsResult, activityResult, chartResult] = await Promise.all([
     getDashboardStats(),
     getRecentActivity(),
-    getChartData(),
+    getChartData(selectedYear),
   ]);
 
   const stats = statsResult.success ? statsResult.stats : null;
   const activities = activityResult.success && activityResult.activities ? activityResult.activities : [];
   const chartData = chartResult.success ? chartResult.chartData : null;
+  const currentYear = new Date().getFullYear();
+
+  // Calculate max value for chart scaling
+  const maxIncome = chartData?.monthlyIncome ? Math.max(...chartData.monthlyIncome.map(i => i.value), 1) : 1;
 
   return (
     <div className="space-y-6 pb-20 lg:pb-0">
@@ -104,10 +79,10 @@ export default async function AdminDashboardPage(): Promise<React.ReactNode> {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard Overview</h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Welcome back! Here&apos;s what&apos;s happening at Dar Al Huda Academy.</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Dar Al Huda Academy</p>
           </div>
-          <Badge className="bg-primary/10 text-primary dark:bg-primary/30 dark:text-primary-foreground border-0">
-            Live
+          <Badge className="bg-primary text-white border-0 px-4 py-1.5">
+            <Activity className="h-3.5 w-3.5 mr-1.5" />Live
           </Badge>
         </div>
       </div>
@@ -115,44 +90,87 @@ export default async function AdminDashboardPage(): Promise<React.ReactNode> {
       {/* Stats Grid */}
       <Suspense fallback={<DashboardSkeleton />}>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard title="Total Students" value={stats?.totalStudents ?? 0} icon={Users} gradient="bg-blue-500" iconBg="bg-blue-50 dark:bg-blue-900/40" iconColor="text-blue-600 dark:text-blue-400" />
-          <StatCard title="Active Students" value={stats?.activeStudents ?? 0} icon={UserCheck} gradient="bg-emerald-500" iconBg="bg-emerald-50 dark:bg-emerald-900/40" iconColor="text-emerald-600 dark:text-emerald-400" />
-          <StatCard title="Total Teachers" value={stats?.totalTeachers ?? 0} icon={GraduationCap} gradient="bg-violet-500" iconBg="bg-violet-50 dark:bg-violet-900/40" iconColor="text-violet-600 dark:text-violet-400" />
-          <StatCard title="Paid This Month" value={stats?.paidStudents ?? 0} icon={CreditCard} gradient="bg-green-500" iconBg="bg-green-50 dark:bg-green-900/40" iconColor="text-green-600 dark:text-green-400" />
-          <StatCard title="Unpaid" value={stats?.unpaidStudents ?? 0} icon={UserX} gradient="bg-red-500" iconBg="bg-red-50 dark:bg-red-900/40" iconColor="text-red-600 dark:text-red-400" />
-          <StatCard title="Upcoming Classes" value={stats?.upcomingClasses ?? 0} icon={Calendar} gradient="bg-cyan-500" iconBg="bg-cyan-50 dark:bg-cyan-900/40" iconColor="text-cyan-600 dark:text-cyan-400" />
-          <StatCard title="Total Courses" value={stats?.totalCourses ?? 9} icon={BookOpen} gradient="bg-teal-500" iconBg="bg-teal-50 dark:bg-teal-900/40" iconColor="text-teal-600 dark:text-teal-400" />
+          <StatCard title="Total Students" value={String(stats?.totalStudents ?? 0)} icon={Users} gradient="bg-blue-500" iconBg="bg-blue-50 dark:bg-blue-900/40" iconColor="text-blue-600 dark:text-blue-400" />
+          <StatCard title="Active Students" value={String(stats?.activeStudents ?? 0)} icon={UserCheck} gradient="bg-emerald-500" iconBg="bg-emerald-50 dark:bg-emerald-900/40" iconColor="text-emerald-600 dark:text-emerald-400" />
+          <StatCard title="Total Teachers" value={String(stats?.totalTeachers ?? 0)} icon={GraduationCap} gradient="bg-violet-500" iconBg="bg-violet-50 dark:bg-violet-900/40" iconColor="text-violet-600 dark:text-violet-400" />
+          <StatCard title="Upcoming Classes" value={String(stats?.upcomingClasses ?? 0)} icon={Calendar} gradient="bg-cyan-500" iconBg="bg-cyan-50 dark:bg-cyan-900/40" iconColor="text-cyan-600 dark:text-cyan-400" />
+          <StatCard title="Monthly Income" value={`ETB ${(stats?.monthlyIncome ?? 0).toLocaleString()}`} icon={TrendingUp} gradient="bg-green-500" iconBg="bg-green-50 dark:bg-green-900/40" iconColor="text-green-600 dark:text-green-400" />
+          <StatCard title="Teacher Salaries" value={`ETB ${(stats?.teacherSalaries ?? 0).toLocaleString()}`} icon={TrendingDown} gradient="bg-orange-500" iconBg="bg-orange-50 dark:bg-orange-900/40" iconColor="text-orange-600 dark:text-orange-400" />
+          <StatCard title="Net Income" value={`ETB ${(stats?.netIncome ?? 0).toLocaleString()}`} icon={DollarSign} gradient={(stats?.netIncome ?? 0) >= 0 ? 'bg-teal-500' : 'bg-red-500'} iconBg={(stats?.netIncome ?? 0) >= 0 ? 'bg-teal-50 dark:bg-teal-900/40' : 'bg-red-50 dark:bg-red-900/40'} iconColor={(stats?.netIncome ?? 0) >= 0 ? 'text-teal-600 dark:text-teal-400' : 'text-red-600 dark:text-red-400'} />
+          <StatCard title="Paid Students" value={String(stats?.paidStudents ?? 0)} icon={CreditCard} gradient="bg-green-500" iconBg="bg-green-50 dark:bg-green-900/40" iconColor="text-green-600 dark:text-green-400" />
         </div>
       </Suspense>
 
-      {/* Charts and Activity */}
+      {/* Yearly Income Bar Chart */}
+      <Card className="shadow-lg border-0 dark:bg-gray-800">
+        <CardHeader className="border-b dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-primary" />
+              Monthly Income - {selectedYear}
+            </CardTitle>
+            <form className="flex items-center gap-2">
+              <select name="year" defaultValue={selectedYear} className="text-sm border rounded-lg px-3 py-1.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                {Array.from({ length: 5 }, (_, i) => currentYear - 2 + i).map((year) => (
+                  <option key={year} value={String(year)}>{year}</option>
+                ))}
+              </select>
+              <button type="submit" className="text-sm text-primary hover:underline font-medium">Go</button>
+            </form>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-6">
+          {chartData?.monthlyIncome ? (
+            <div className="flex items-end justify-between gap-1 h-48">
+              {chartData.monthlyIncome.map((item) => {
+                const height = (item.value / maxIncome) * 100;
+                return (
+                  <div key={item.label} className="flex-1 flex flex-col items-center gap-1">
+                    <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+                      {item.value > 0 ? `ETB ${(item.value / 1000).toFixed(1)}k` : ''}
+                    </span>
+                    <div className="w-full bg-primary/80 hover:bg-primary rounded-t-md transition-all" 
+                      style={{ height: `${Math.max(height, 2)}%` }} 
+                      title={`${item.label}: ETB ${item.value.toLocaleString()}`}
+                    />
+                    <span className="text-xs text-gray-500 dark:text-gray-400 mt-1">{item.label}</span>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-center text-gray-500 py-8">No data available</p>
+          )}
+          <div className="mt-4 text-center text-sm text-gray-500 dark:text-gray-400">
+            Total: <span className="font-bold text-gray-900 dark:text-white">ETB {chartData?.monthlyIncome?.reduce((sum, i) => sum + i.value, 0).toLocaleString() || 0}</span>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Activity & Sidebar */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
           <Card className="shadow-lg border-0 dark:bg-gray-800">
             <CardHeader className="border-b dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800">
               <CardTitle className="text-lg font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
-                <Activity className="h-5 w-5 text-primary" />
-                Recent Activity
+                <Activity className="h-5 w-5 text-primary" />Recent Activity
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               <div className="divide-y dark:divide-gray-700 max-h-[400px] overflow-y-auto">
                 {activities.length > 0 ? (
                   activities.map((activity) => (
-                    <ActivityItem
-                      key={`${activity.type}-${activity.id}`}
-                      type={activity.type}
-                      title={activity.title}
-                      description={activity.description}
-                      timestamp={activity.timestamp}
-                      status={activity.status}
-                    />
+                    <div key={`${activity.type}-${activity.id}`} className="flex items-start gap-3 p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">{activity.title}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{activity.description}</p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{formatDate(activity.timestamp)}</p>
+                      </div>
+                      <Badge variant="outline" className="text-xs dark:border-gray-600 dark:text-gray-300">{activity.status}</Badge>
+                    </div>
                   ))
                 ) : (
-                  <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-                    <Activity className="h-10 w-10 mx-auto mb-2 text-gray-300 dark:text-gray-600" />
-                    <p className="text-sm">No recent activity</p>
-                  </div>
+                  <div className="text-center py-12 text-gray-500 dark:text-gray-400">No recent activity</div>
                 )}
               </div>
             </CardContent>
@@ -162,9 +180,8 @@ export default async function AdminDashboardPage(): Promise<React.ReactNode> {
         <div className="space-y-4">
           <Card className="shadow-lg border-0 dark:bg-gray-800">
             <CardHeader className="border-b dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800">
-              <CardTitle className="text-lg font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
-                <BookOpen className="h-5 w-5 text-primary" />
-                Courses
+              <CardTitle className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <BookOpen className="h-5 w-5 text-primary" />Courses
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-4">
@@ -176,13 +193,7 @@ export default async function AdminDashboardPage(): Promise<React.ReactNode> {
                       <span className="font-medium text-gray-900 dark:text-white">{item.value}</span>
                     </div>
                     <div className="h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-                      <div
-                        className="h-full rounded-full transition-all duration-500"
-                        style={{
-                          width: `${(item.value / (stats?.totalStudents || 1)) * 100}%`,
-                          backgroundColor: item.color,
-                        }}
-                      />
+                      <div className="h-full rounded-full" style={{ width: `${(item.value / (stats?.totalStudents || 1)) * 100}%`, backgroundColor: item.color }} />
                     </div>
                   </div>
                 ))}

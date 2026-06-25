@@ -3,27 +3,28 @@
 
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { cookies } from 'next/headers';
 
-interface CreateProgressData {
+export async function createProgress(data: {
   studentId: string;
-  teacherId: string;
   surah: string;
   ayahFrom: number;
   ayahTo: number;
   score: number;
   notes: string;
-  type: string;
-}
-
-export async function createProgress(data: CreateProgressData): Promise<{
-  success: boolean;
-  error?: string;
-}> {
+}): Promise<{ success: boolean; error?: string }> {
   try {
+    const cookieStore = await cookies();
+    const teacherId = cookieStore.get('teacherId')?.value;
+
+    if (!teacherId) {
+      return { success: false, error: 'Not authenticated. Please login again.' };
+    }
+
     await prisma.studentProgress.create({
       data: {
         studentId: data.studentId,
-        teacherId: data.teacherId,
+        teacherId,
         surah: data.surah,
         ayahFrom: data.ayahFrom,
         ayahTo: data.ayahTo,
@@ -57,9 +58,7 @@ export async function getStudentProgress(studentId: string): Promise<{
   try {
     const progress = await prisma.studentProgress.findMany({
       where: { studentId },
-      include: {
-        teacher: { select: { fullName: true } },
-      },
+      include: { teacher: { select: { fullName: true } } },
       orderBy: { createdAt: 'desc' },
     });
 
