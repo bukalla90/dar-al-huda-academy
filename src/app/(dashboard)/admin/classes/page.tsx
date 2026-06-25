@@ -4,20 +4,21 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { getClasses } from '@/lib/action/class.action';
-import { Calendar, Video, Clock, Search, Filter, Eye } from 'lucide-react';
+import { Calendar, Video, Clock, Search, Filter, Eye, Users } from 'lucide-react';
 import Link from 'next/link';
 
 export default async function ClassesPage({
   searchParams,
 }: {
-  searchParams: { date?: string; teacher?: string; search?: string };
+  searchParams: Promise<{ date?: string; teacher?: string; search?: string }>;
 }): Promise<React.ReactNode> {
+  const params = await searchParams;
   const result = await getClasses();
   const sessions = result.success && result.sessions ? result.sessions : [];
   
-  const filterDate = searchParams.date || new Date().toISOString().split('T')[0];
-  const filterTeacher = searchParams.teacher || '';
-  const filterSearch = searchParams.search || '';
+  const filterDate = params.date || new Date().toISOString().split('T')[0];
+  const filterTeacher = params.teacher || '';
+  const filterSearch = params.search || '';
 
   // Filter sessions
   let filteredSessions = sessions;
@@ -37,13 +38,15 @@ export default async function ClassesPage({
     );
   }
 
-  // Filter by search
+  // Filter by search (student names from sessionStudents or teacher name)
   if (filterSearch) {
-    filteredSessions = filteredSessions.filter(
-      (s) =>
-        s.student.fullName.toLowerCase().includes(filterSearch.toLowerCase()) ||
+    filteredSessions = filteredSessions.filter((s) => {
+      const studentNames = s.sessionStudents.map(ss => ss.student.fullName.toLowerCase()).join(' ');
+      return (
+        studentNames.includes(filterSearch.toLowerCase()) ||
         s.teacher.fullName.toLowerCase().includes(filterSearch.toLowerCase())
-    );
+      );
+    });
   }
 
   // Today's sessions
@@ -64,6 +67,18 @@ export default async function ClassesPage({
     }
     sessionsByTeacher[s.teacher.fullName].push(s);
   });
+
+  // Helper to get student names string
+  function getStudentNames(session: typeof filteredSessions[0]): string {
+    return session.sessionStudents.map(ss => ss.student.fullName).join(', ');
+  }
+
+  // Helper to get attendance info
+  function getAttendanceInfo(session: typeof filteredSessions[0]): string {
+    const total = session.sessionStudents.length;
+    const joined = session.sessionStudents.filter(ss => ss.joinedAt).length;
+    return `${joined}/${total} joined`;
+  }
 
   return (
     <div className="space-y-6 pb-20 lg:pb-0">
@@ -136,8 +151,7 @@ export default async function ClassesPage({
               className="w-full sm:w-[180px] dark:bg-gray-700 dark:border-gray-600 dark:text-white"
             />
             <Button type="submit" variant="outline" className="dark:border-gray-600 dark:text-gray-300">
-              <Filter className="h-4 w-4 mr-2" />
-              Filter
+              <Filter className="h-4 w-4 mr-2" />Filter
             </Button>
             <Link href="/admin/classes">
               <Button variant="ghost" className="dark:text-gray-300">Clear</Button>
@@ -170,26 +184,27 @@ export default async function ClassesPage({
                   {teacherSessions.map((session) => (
                     <Card key={session.id} className="dark:bg-gray-800 dark:border-gray-700">
                       <CardContent className="pt-3 pb-3">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="font-medium dark:text-white text-sm">{session.student.fullName}</p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">
-                              {new Date(session.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Badge variant={session.status === 'SCHEDULED' ? 'success' : 'secondary'} className="text-xs">
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1">
+                              <Users className="h-3 w-3 text-gray-400" />
+                              <p className="font-medium dark:text-white text-sm">{getStudentNames(session)}</p>
+                            </div>
+                            <Badge variant={session.status === 'SCHEDULED' ? 'secondary' : session.status === 'LIVE' ? 'success' : session.status === 'COMPLETED' ? 'success' : 'destructive'} className="text-xs">
                               {session.status}
                             </Badge>
-                            {session.meetingUrl && (
-                              <a href={session.meetingUrl} target="_blank">
-                                <Button size="sm" variant="outline" className="text-primary border-primary h-8 text-xs">
-                                  <Video className="h-3 w-3 mr-1" />
-                                  Join
-                                </Button>
-                              </a>
-                            )}
                           </div>
+                          <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                            <span>{new Date(session.scheduledAt).toLocaleDateString()} at {new Date(session.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                            <span>{getAttendanceInfo(session)}</span>
+                          </div>
+                          {session.meetingUrl && (session.status === 'SCHEDULED' || session.status === 'LIVE') && (
+                            <a href={session.meetingUrl} target="_blank">
+                              <Button size="sm" variant="outline" className="text-primary border-primary h-7 text-xs w-full">
+                                <Video className="h-3 w-3 mr-1" />Join
+                              </Button>
+                            </a>
+                          )}
                         </div>
                       </CardContent>
                     </Card>
@@ -216,34 +231,39 @@ export default async function ClassesPage({
                   <table className="w-full">
                     <thead>
                       <tr className="border-b dark:border-gray-700">
-                        <th className="text-left py-3 px-4 text-gray-600 dark:text-gray-300 font-medium">Student</th>
+                        <th className="text-left py-3 px-4 text-gray-600 dark:text-gray-300 font-medium">Students</th>
                         <th className="text-left py-3 px-4 text-gray-600 dark:text-gray-300 font-medium">Date</th>
                         <th className="text-left py-3 px-4 text-gray-600 dark:text-gray-300 font-medium">Time</th>
                         <th className="text-left py-3 px-4 text-gray-600 dark:text-gray-300 font-medium">Status</th>
+                        <th className="text-left py-3 px-4 text-gray-600 dark:text-gray-300 font-medium">Attendance</th>
                         <th className="text-left py-3 px-4 text-gray-600 dark:text-gray-300 font-medium">Meeting</th>
                       </tr>
                     </thead>
                     <tbody>
                       {teacherSessions.map((session) => (
                         <tr key={session.id} className="border-b dark:border-gray-700 dark:hover:bg-gray-700/50">
-                          <td className="py-3 px-4 font-medium dark:text-white">{session.student.fullName}</td>
-                          <td className="py-3 px-4 dark:text-gray-300">
+                          <td className="py-3 px-4 font-medium dark:text-white text-sm">
+                            {getStudentNames(session)}
+                          </td>
+                          <td className="py-3 px-4 dark:text-gray-300 text-sm">
                             {new Date(session.scheduledAt).toLocaleDateString()}
                           </td>
-                          <td className="py-3 px-4 dark:text-gray-300">
+                          <td className="py-3 px-4 dark:text-gray-300 text-sm">
                             {new Date(session.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </td>
                           <td className="py-3 px-4">
-                            <Badge variant={session.status === 'SCHEDULED' ? 'success' : 'secondary'}>
+                            <Badge variant={session.status === 'SCHEDULED' ? 'secondary' : session.status === 'LIVE' ? 'success' : session.status === 'COMPLETED' ? 'success' : 'destructive'}>
                               {session.status}
                             </Badge>
                           </td>
+                          <td className="py-3 px-4 text-sm dark:text-gray-300">
+                            {getAttendanceInfo(session)}
+                          </td>
                           <td className="py-3 px-4">
-                            {session.meetingUrl && (
+                            {session.meetingUrl && (session.status === 'SCHEDULED' || session.status === 'LIVE') && (
                               <a href={session.meetingUrl} target="_blank">
                                 <Button size="sm" variant="outline" className="text-primary border-primary dark:border-primary dark:text-primary">
-                                  <Video className="h-4 w-4 mr-1" />
-                                  Join
+                                  <Video className="h-4 w-4 mr-1" />Join
                                 </Button>
                               </a>
                             )}
