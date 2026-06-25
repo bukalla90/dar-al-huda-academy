@@ -29,7 +29,6 @@ export async function GET(): Promise<NextResponse> {
                 id: true,
                 scheduledAt: true,
                 meetingUrl: true,
-                roomName: true,
                 status: true,
               },
             },
@@ -71,10 +70,9 @@ export async function GET(): Promise<NextResponse> {
         id: ss.session.id,
         scheduledAt: ss.session.scheduledAt,
         meetingUrl: ss.session.meetingUrl,
-        roomName: ss.session.roomName,
         status: ss.session.status,
       })),
-      sessionStudents: undefined, // Remove the raw relation
+      sessionStudents: undefined,
     };
 
     return NextResponse.json({ success: true, student: transformedStudent, generalMaterials });
