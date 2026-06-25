@@ -22,9 +22,25 @@ export async function GET(): Promise<NextResponse> {
           take: 10,
           include: { teacher: { select: { fullName: true } } },
         },
-        sessions: {
-          where: { scheduledAt: { gte: new Date() }, status: 'SCHEDULED' },
-          orderBy: { scheduledAt: 'asc' },
+        sessionStudents: {
+          include: {
+            session: {
+              select: {
+                id: true,
+                scheduledAt: true,
+                meetingUrl: true,
+                roomName: true,
+                status: true,
+              },
+            },
+          },
+          where: {
+            session: {
+              scheduledAt: { gte: new Date() },
+              status: { in: ['SCHEDULED', 'LIVE'] },
+            },
+          },
+          orderBy: { session: { scheduledAt: 'asc' } },
           take: 10,
         },
         payments: {
@@ -48,7 +64,20 @@ export async function GET(): Promise<NextResponse> {
       take: 5,
     });
 
-    return NextResponse.json({ success: true, student, generalMaterials });
+    // Transform sessions data for the frontend
+    const transformedStudent = {
+      ...student,
+      sessions: student.sessionStudents.map(ss => ({
+        id: ss.session.id,
+        scheduledAt: ss.session.scheduledAt,
+        meetingUrl: ss.session.meetingUrl,
+        roomName: ss.session.roomName,
+        status: ss.session.status,
+      })),
+      sessionStudents: undefined, // Remove the raw relation
+    };
+
+    return NextResponse.json({ success: true, student: transformedStudent, generalMaterials });
   } catch (error) {
     console.error('Dashboard API error:', error);
     return NextResponse.json({ success: false, error: 'Failed to fetch data' }, { status: 500 });
