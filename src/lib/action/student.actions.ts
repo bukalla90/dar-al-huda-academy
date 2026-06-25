@@ -1,4 +1,4 @@
-// src/lib/action/student.action.ts
+// src/lib/action/student.actions.ts
 'use server';
 
 import { prisma } from '@/lib/prisma';
@@ -38,7 +38,7 @@ export interface StudentWithRelations {
     amount: number;
   }[];
   _count?: {
-    sessions: number;
+    sessionStudents: number;
     progress: number;
   };
 }
@@ -320,7 +320,7 @@ export async function getStudentsPaginated(
           },
           _count: {
             select: {
-              sessions: true,
+              sessionStudents: true,
               progress: true,
             },
           },
@@ -371,26 +371,22 @@ export async function getStudentById(studentId: string): Promise<{
           orderBy: { month: 'desc' },
           take: 12,
         },
-        sessions: {
-          orderBy: { scheduledAt: 'desc' },
-          take: 10,
+        sessionStudents: {
           include: {
-            teacher: {
-              select: {
-                fullName: true,
+            session: {
+              include: {
+                teacher: { select: { fullName: true } },
               },
             },
           },
+          orderBy: { session: { scheduledAt: 'desc' } },
+          take: 10,
         },
         progress: {
           orderBy: { createdAt: 'desc' },
           take: 10,
           include: {
-            teacher: {
-              select: {
-                fullName: true,
-              },
-            },
+            teacher: { select: { fullName: true } },
           },
         },
       },
