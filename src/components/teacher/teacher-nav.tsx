@@ -26,12 +26,15 @@ export function TeacherNav(): React.ReactNode {
     <header className="sticky top-0 z-40 bg-white dark:bg-gray-900 border-b dark:border-gray-700 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <Link href="/teacher" className="flex items-center gap-2 shrink-0">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
-              <BookOpen className="h-6 w-6 text-white" />
+          {/* Logo with Name */}
+          <Link href="/teacher" className="flex items-center gap-2.5 shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-md">
+              <BookOpen className="h-5 w-5 text-white" />
             </div>
-            <span className="text-lg sm:text-xl font-bold text-primary hidden sm:block">Dar Al Huda</span>
+            <div className="hidden sm:block">
+              <span className="text-lg font-bold text-primary leading-tight">Dar Al Huda</span>
+              <p className="text-[10px] text-gray-500 dark:text-gray-400 leading-tight">Online Quran Academy</p>
+            </div>
           </Link>
 
           {/* Desktop Navigation */}
@@ -55,7 +58,6 @@ export function TeacherNav(): React.ReactNode {
               );
             })}
 
-            {/* Settings */}
             <Link
               href="/teacher/settings"
               className={cn(
@@ -69,7 +71,6 @@ export function TeacherNav(): React.ReactNode {
               Settings
             </Link>
 
-            {/* Home */}
             <Link
               href="/"
               className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-primary hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
@@ -78,21 +79,23 @@ export function TeacherNav(): React.ReactNode {
               Home
             </Link>
             
-            {/* Desktop Logout */}
             <div className="ml-2 pl-2 border-l dark:border-gray-700">
               <LogoutButton />
             </div>
           </nav>
 
-          {/* Mobile hamburger */}
-          <div className="flex items-center gap-2 md:hidden">
+          {/* Mobile: Logo text + hamburger */}
+          <div className="flex items-center gap-3 md:hidden">
+            {/* Show Dar Al Huda text on mobile */}
+            <span className="text-sm font-bold text-primary">Dar Al Huda</span>
+            
             <Button
               variant="ghost"
               size="icon"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="dark:text-gray-300"
             >
-              {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </Button>
           </div>
         </div>
@@ -105,7 +108,10 @@ export function TeacherNav(): React.ReactNode {
             <div className="fixed inset-0 bg-black/50" onClick={() => setMobileMenuOpen(false)} />
             <div className="fixed top-0 left-0 bottom-0 w-64 bg-white dark:bg-gray-900 shadow-xl p-6 overflow-y-auto">
               <div className="flex items-center justify-between mb-6">
-                <span className="text-lg font-bold text-primary">Menu</span>
+                <div>
+                  <span className="text-lg font-bold text-primary">Dar Al Huda</span>
+                  <p className="text-[10px] text-gray-500">Menu</p>
+                </div>
                 <Button variant="ghost" size="icon" onClick={() => setMobileMenuOpen(false)} className="dark:text-gray-300">
                   <X className="h-5 w-5" />
                 </Button>
@@ -131,7 +137,6 @@ export function TeacherNav(): React.ReactNode {
                   );
                 })}
 
-                {/* Settings */}
                 <Link
                   href="/teacher/settings"
                   onClick={() => setMobileMenuOpen(false)}
@@ -146,7 +151,6 @@ export function TeacherNav(): React.ReactNode {
                   Settings
                 </Link>
 
-                {/* Home */}
                 <Link
                   href="/"
                   onClick={() => setMobileMenuOpen(false)}
