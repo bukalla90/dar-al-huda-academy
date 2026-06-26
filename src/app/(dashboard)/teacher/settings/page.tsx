@@ -98,7 +98,7 @@ export default function TeacherSettingsPage(): React.ReactNode {
 
       <Card className="dark:bg-gray-800 dark:border-gray-700">
         <CardHeader>
-          <CardTitle className="dark:text-white">Change Password & Username</CardTitle>
+          <CardTitle className="dark:text-white">Change password & Username</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -184,7 +184,7 @@ export default function TeacherSettingsPage(): React.ReactNode {
               {errors.confirmPassword && <p className="text-red-500 text-xs mt-1">{errors.confirmPassword.message}</p>}
             </div>
 
-            <Button type="submit" disabled={loading || (newUsername && newUsername.length >= 4 && usernameAvailable === false)} className="w-full">
+            <Button type="submit" disabled={loading || !!(newUsername && newUsername.length >= 4 && usernameAvailable === false)} className="w-full">
               {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
               {loading ? 'Saving...' : 'Save Changes'}
             </Button>
