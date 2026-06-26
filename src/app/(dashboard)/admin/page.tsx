@@ -186,7 +186,7 @@ export default async function AdminDashboardPage({
 
           <Card className="shadow-lg border-0 dark:bg-gray-800">
             <CardHeader className="border-b dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800">
-              <CardTitle className="text-lg font-semibold text-gray-900 dark:text-white">Payments</CardTitle>
+              <CardTitle className="text-lg font-semibold text-gray-900 dark:text-white">Payment</CardTitle>
             </CardHeader>
             <CardContent className="pt-4">
               <div className="space-y-2">
