@@ -89,23 +89,12 @@ export default function LoginPage(): React.ReactNode {
       {/* Right Side - Login Form */}
       <div className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8 bg-white dark:bg-gray-950">
         <div className="w-full max-w-md">
-          {/* Back to Home - Now visible at top */}
-          <div className="mb-6">
-            <Link 
-              href="/" 
-              className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-primary transition-colors"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to Home
-            </Link>
-          </div>
-
-          <div className="lg:hidden text-center mb-8">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center mx-auto mb-4 shadow-lg">
-              <BookOpen className="h-8 w-8 text-white" />
+          <div className="lg:hidden text-center mb-6">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center mx-auto mb-3 shadow-lg">
+              <BookOpen className="h-7 w-7 text-white" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dar Al Huda</h1>
-            <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Online Quran Academy</p>
+            <h1 className="text-xl font-bold text-gray-900 dark:text-white">Dar Al Huda</h1>
+            <p className="text-gray-500 dark:text-gray-400 text-xs mt-1">Online Quran Academy</p>
           </div>
 
           <Card className="border-0 shadow-2xl dark:bg-gray-800 dark:border-gray-700">
@@ -206,6 +195,17 @@ export default function LoginPage(): React.ReactNode {
                   <strong>First time?</strong> Your account is created by the admin. 
                   After first login, please change your password from your dashboard settings.
                 </p>
+              </div>
+
+              {/* Back to Home - Moved below the form */}
+              <div className="mt-6 text-center">
+                <Link 
+                  href="/" 
+                  className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-primary transition-colors"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Back to Home
+                </Link>
               </div>
             </CardContent>
           </Card>
