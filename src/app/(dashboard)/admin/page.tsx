@@ -8,7 +8,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { formatDate } from '@/lib/utils';
 import { getChartData, getDashboardStats, getRecentActivity } from '@/lib/action/admin.actions';
-import Link from 'next/link';
+import { IncomeBarChart } from '@/components/charts/income-bar-chart';
 
 function DashboardSkeleton(): React.ReactNode {
   return (
@@ -69,8 +69,11 @@ export default async function AdminDashboardPage({
   const chartData = chartResult.success ? chartResult.chartData : null;
   const currentYear = new Date().getFullYear();
 
-  // Calculate max value for chart scaling
-  const maxIncome = chartData?.monthlyIncome ? Math.max(...chartData.monthlyIncome.map(i => i.value), 1) : 1;
+  const monthlyIncomeData = chartData?.monthlyIncome?.map(item => ({
+    month: item.label,
+    income: item.value,
+    color: item.color,
+  })) || [];
 
   return (
     <div className="space-y-6 pb-20 lg:pb-0">
@@ -92,16 +95,16 @@ export default async function AdminDashboardPage({
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard title="Total Students" value={String(stats?.totalStudents ?? 0)} icon={Users} gradient="bg-blue-500" iconBg="bg-blue-50 dark:bg-blue-900/40" iconColor="text-blue-600 dark:text-blue-400" />
           <StatCard title="Active Students" value={String(stats?.activeStudents ?? 0)} icon={UserCheck} gradient="bg-emerald-500" iconBg="bg-emerald-50 dark:bg-emerald-900/40" iconColor="text-emerald-600 dark:text-emerald-400" />
-          <StatCard title="Total Teachers" value={String(stats?.totalTeachers ?? 0)} icon={GraduationCap} gradient="bg-violet-500" iconBg="bg-violet-50 dark:bg-violet-900/40" iconColor="text-violet-600 dark:text-violet-400" />
+          <StatCard title="Total Ustazs" value={String(stats?.totalTeachers ?? 0)} icon={GraduationCap} gradient="bg-violet-500" iconBg="bg-violet-50 dark:bg-violet-900/40" iconColor="text-violet-600 dark:text-violet-400" />
           <StatCard title="Upcoming Classes" value={String(stats?.upcomingClasses ?? 0)} icon={Calendar} gradient="bg-cyan-500" iconBg="bg-cyan-50 dark:bg-cyan-900/40" iconColor="text-cyan-600 dark:text-cyan-400" />
           <StatCard title="Monthly Income" value={`ETB ${(stats?.monthlyIncome ?? 0).toLocaleString()}`} icon={TrendingUp} gradient="bg-green-500" iconBg="bg-green-50 dark:bg-green-900/40" iconColor="text-green-600 dark:text-green-400" />
-          <StatCard title="Teacher Salaries" value={`ETB ${(stats?.teacherSalaries ?? 0).toLocaleString()}`} icon={TrendingDown} gradient="bg-orange-500" iconBg="bg-orange-50 dark:bg-orange-900/40" iconColor="text-orange-600 dark:text-orange-400" />
+          <StatCard title="Ustaz Salaries" value={`ETB ${(stats?.teacherSalaries ?? 0).toLocaleString()}`} icon={TrendingDown} gradient="bg-orange-500" iconBg="bg-orange-50 dark:bg-orange-900/40" iconColor="text-orange-600 dark:text-orange-400" />
           <StatCard title="Net Income" value={`ETB ${(stats?.netIncome ?? 0).toLocaleString()}`} icon={DollarSign} gradient={(stats?.netIncome ?? 0) >= 0 ? 'bg-teal-500' : 'bg-red-500'} iconBg={(stats?.netIncome ?? 0) >= 0 ? 'bg-teal-50 dark:bg-teal-900/40' : 'bg-red-50 dark:bg-red-900/40'} iconColor={(stats?.netIncome ?? 0) >= 0 ? 'text-teal-600 dark:text-teal-400' : 'text-red-600 dark:text-red-400'} />
           <StatCard title="Paid Students" value={String(stats?.paidStudents ?? 0)} icon={CreditCard} gradient="bg-green-500" iconBg="bg-green-50 dark:bg-green-900/40" iconColor="text-green-600 dark:text-green-400" />
         </div>
       </Suspense>
 
-      {/* Yearly Income Bar Chart */}
+      {/* Income Bar Chart */}
       <Card className="shadow-lg border-0 dark:bg-gray-800">
         <CardHeader className="border-b dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800">
           <div className="flex items-center justify-between">
@@ -120,29 +123,9 @@ export default async function AdminDashboardPage({
           </div>
         </CardHeader>
         <CardContent className="pt-6">
-          {chartData?.monthlyIncome ? (
-            <div className="flex items-end justify-between gap-1 h-48">
-              {chartData.monthlyIncome.map((item) => {
-                const height = (item.value / maxIncome) * 100;
-                return (
-                  <div key={item.label} className="flex-1 flex flex-col items-center gap-1">
-                    <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
-                      {item.value > 0 ? `ETB ${(item.value / 1000).toFixed(1)}k` : ''}
-                    </span>
-                    <div className="w-full bg-primary/80 hover:bg-primary rounded-t-md transition-all" 
-                      style={{ height: `${Math.max(height, 2)}%` }} 
-                      title={`${item.label}: ETB ${item.value.toLocaleString()}`}
-                    />
-                    <span className="text-xs text-gray-500 dark:text-gray-400 mt-1">{item.label}</span>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <p className="text-center text-gray-500 py-8">No data available</p>
-          )}
+          <IncomeBarChart data={monthlyIncomeData} />
           <div className="mt-4 text-center text-sm text-gray-500 dark:text-gray-400">
-            Total: <span className="font-bold text-gray-900 dark:text-white">ETB {chartData?.monthlyIncome?.reduce((sum, i) => sum + i.value, 0).toLocaleString() || 0}</span>
+            Total: <span className="font-bold text-gray-900 dark:text-white">ETB {monthlyIncomeData.reduce((sum, i) => sum + i.income, 0).toLocaleString()}</span>
           </div>
         </CardContent>
       </Card>
