@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { BookOpen, Eye, EyeOff, Lock, User, ArrowRight, Globe, Users } from 'lucide-react';
+import { BookOpen, Eye, EyeOff, Lock, User, ArrowRight, ArrowLeft } from 'lucide-react';
 import { loginUser } from '@/lib/action/auth.actions';
 
 export default function LoginPage(): React.ReactNode {
@@ -55,14 +55,15 @@ export default function LoginPage(): React.ReactNode {
 
   return (
     <div className="min-h-screen flex">
-      {/* Left Side */}
+      {/* Left Side - Decorative */}
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-primary via-primary to-secondary relative overflow-hidden">
         <div className="absolute inset-0 opacity-20">
           <div className="absolute top-20 left-10 w-96 h-96 bg-white rounded-full mix-blend-overlay filter blur-3xl animate-blob" />
           <div className="absolute top-40 right-10 w-96 h-96 bg-accent rounded-full mix-blend-overlay filter blur-3xl animate-blob animation-delay-2000" />
           <div className="absolute -bottom-8 left-20 w-96 h-96 bg-secondary rounded-full mix-blend-overlay filter blur-3xl animate-blob animation-delay-4000" />
         </div>
-        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/arabesque.png')] opacity-10" />
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDE4YzAtMy4zMTQtMi42ODYtNi02LTZzLTYgMi42ODYtNiA2IDIuNjg2IDYgNiA2IDYtMi42ODYgNi02ek0yNCAyNGMtMy4zMTQgMC02IDIuNjg2LTYgNnMyLjY4NiA2IDYgNiA2LTIuNjg2IDYtNi0yLjY4Ni02LTYtNnptMjQgMGMtMy4zMTQgMC02IDIuNjg2LTYgNnMyLjY4NiA2IDYgNiA2LTIuNjg2IDYtNi0yLjY4Ni02LTYtNnptLTEyIDEyYy0zLjMxNCAwLTYgMi42ODYtNiA2czIuNjg2IDYgNiA2IDYtMi42ODYgNi02LTIuNjg2LTYtNi02eiIvPjwvZz48L2c+PC9zdmc+')] opacity-30" />
+
         <div className="relative flex flex-col justify-center px-12 text-white">
           <div className="mb-8">
             <div className="w-20 h-20 rounded-3xl bg-white/20 backdrop-blur-sm flex items-center justify-center mb-6 shadow-2xl">
@@ -75,48 +76,58 @@ export default function LoginPage(): React.ReactNode {
           </div>
           <div className="mt-8 p-6 bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20">
             <p className="text-3xl font-arabic text-accent mb-3 leading-relaxed text-center">
-              اقْرَأْ بِاسْمِ رَبِّكَ الَّذِي خَلَقَ
+              وَقُل رَّبِّ زِدْنِي عِلْمًا
             </p>
             <p className="text-white/80 text-center italic">
-              &ldquo;Read in the name of your Lord who created.&rdquo;
+              &ldquo;And say: My Lord, increase me in knowledge.&rdquo;
             </p>
-            <p className="text-white/60 text-center text-sm mt-2">Surah Al-Alaq 96:1</p>
+            <p className="text-white/60 text-center text-sm mt-2">Surah Taha 20:114</p>
           </div>
         </div>
       </div>
 
-      {/* Right Side */}
-      <div className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8 bg-background">
+      {/* Right Side - Login Form */}
+      <div className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8 bg-white dark:bg-gray-950">
         <div className="w-full max-w-md">
+          {/* Back to Home - Now visible at top */}
+          <div className="mb-6">
+            <Link 
+              href="/" 
+              className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-primary transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to Home
+            </Link>
+          </div>
+
           <div className="lg:hidden text-center mb-8">
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center mx-auto mb-4 shadow-lg">
               <BookOpen className="h-8 w-8 text-white" />
             </div>
-            <h1 className="text-2xl font-bold text-text">Dar Al Huda</h1>
-            <p className="text-gray-500 text-sm mt-1">Online Quran Academy</p>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dar Al Huda</h1>
+            <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Online Quran Academy</p>
           </div>
 
-          <Card className="border-0 shadow-2xl">
+          <Card className="border-0 shadow-2xl dark:bg-gray-800 dark:border-gray-700">
             <CardHeader className="space-y-1 text-center pb-2">
-              <CardTitle className="text-2xl font-bold">Welcome Back</CardTitle>
-              <CardDescription>Sign in to your account to continue</CardDescription>
+              <CardTitle className="text-2xl font-bold text-gray-900 dark:text-white">Welcome Back</CardTitle>
+              <CardDescription className="dark:text-gray-400">Sign in to your account to continue</CardDescription>
             </CardHeader>
             <CardContent className="pt-4">
               <form onSubmit={handleLogin} className="space-y-5">
                 {error && (
-                  <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl text-sm">
+                  <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 px-4 py-3 rounded-xl text-sm">
                     {error}
                   </div>
                 )}
 
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium">I am a</Label>
+                  <Label className="text-sm font-medium dark:text-gray-300">I am a</Label>
                   <Select value={role} onValueChange={setRole}>
-                    <SelectTrigger className="h-12 rounded-xl border-gray-200 bg-white">
-                      <Users className="h-4 w-4 mr-2 text-gray-400" />
+                    <SelectTrigger className="h-12 rounded-xl border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white">
                       <SelectValue placeholder="Select your role" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="dark:bg-gray-800 dark:border-gray-700">
                       <SelectItem value="ADMIN">Admin</SelectItem>
                       <SelectItem value="TEACHER">Ustaz (Teacher)</SelectItem>
                       <SelectItem value="STUDENT">Student</SelectItem>
@@ -125,7 +136,7 @@ export default function LoginPage(): React.ReactNode {
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium">Username</Label>
+                  <Label className="text-sm font-medium dark:text-gray-300">Username</Label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                     <Input
@@ -133,14 +144,14 @@ export default function LoginPage(): React.ReactNode {
                       placeholder="Enter your username"
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
-                      className="pl-10 h-12 rounded-xl border-gray-200"
+                      className="pl-10 h-12 rounded-xl border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                       required
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium">Password</Label>
+                  <Label className="text-sm font-medium dark:text-gray-300">Password</Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                     <Input
@@ -148,13 +159,13 @@ export default function LoginPage(): React.ReactNode {
                       placeholder="Enter your password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="pl-10 pr-12 h-12 rounded-xl border-gray-200"
+                      className="pl-10 pr-12 h-12 rounded-xl border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                       required
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                     >
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
@@ -163,8 +174,8 @@ export default function LoginPage(): React.ReactNode {
 
                 <div className="flex items-center justify-between text-sm">
                   <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" className="rounded border-gray-300 text-primary focus:ring-primary" />
-                    <span className="text-gray-600">Remember me</span>
+                    <input type="checkbox" className="rounded border-gray-300 dark:border-gray-600 text-primary focus:ring-primary" />
+                    <span className="text-gray-600 dark:text-gray-400">Remember me</span>
                   </label>
                   <Link href="/forgot-password" className="text-primary hover:underline font-medium">
                     Forgot password?
@@ -190,21 +201,14 @@ export default function LoginPage(): React.ReactNode {
                 </Button>
               </form>
 
-              <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-xl">
-                <p className="text-sm text-amber-800">
+              <div className="mt-6 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
+                <p className="text-sm text-amber-800 dark:text-amber-300">
                   <strong>First time?</strong> Your account is created by the admin. 
                   After first login, please change your password from your dashboard settings.
                 </p>
               </div>
             </CardContent>
           </Card>
-
-          <div className="text-center mt-6">
-            <Link href="/" className="text-sm text-gray-500 hover:text-primary transition-colors inline-flex items-center gap-1">
-              <Globe className="h-4 w-4" />
-              Back to Home
-            </Link>
-          </div>
         </div>
       </div>
 

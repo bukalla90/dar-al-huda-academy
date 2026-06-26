@@ -11,10 +11,10 @@ export function LogoutButton(): React.ReactNode {
       <Button 
         type="submit"
         variant="ghost" 
-        className="text-red-600 hover:text-red-700 hover:bg-red-50 w-full justify-start"
+        className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 w-full justify-start"
       >
         <LogOut className="mr-2 h-4 w-4" />
-        Log out
+        Logout
       </Button>
     </form>
   );
@@ -27,7 +27,8 @@ export function LogoutIconButton(): React.ReactNode {
         type="submit"
         variant="ghost" 
         size="icon"
-        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+        className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+        title="Logout"
       >
         <LogOut className="h-5 w-5" />
       </Button>

@@ -44,7 +44,7 @@ export default function HomePage(): React.ReactNode {
       contact: 'Contact',
       login: 'Login',
       dashboard: 'Dashboard',
-      heroTitle: 'Learn Quran Online with Qualified Teachers',
+      heroTitle: 'Learn Quran Online with Qualified Ustazs',
       heroSubtitle: 'Master the recitation, memorization, and understanding of the Holy Quran from the comfort of your home.',
       quranVerse: 'اقْرَأْ بِاسْمِ رَبِّكَ الَّذِي خَلَقَ',
       quranTranslation: '"Read in the name of your Lord who created."',
@@ -60,11 +60,11 @@ export default function HomePage(): React.ReactNode {
       islamicStudies: 'Islamic Studies',
       availableTimes: 'Available Class Times',
       readyToStart: 'Ready to Start Your Quran Journey?',
-      readyDesc: 'Contact us to get registered and start learning the Quran with qualified teachers.',
+      readyDesc: 'Contact us to get registered and start learning the Quran with qualified Ustazs.',
       getStarted: 'Contact Us Now',
       howToRegister: 'How to Register',
       howToRegisterDesc: 'Contact us through any of the following methods to get registered. Our admin will create your account and send you login details.',
-      footerAbout: 'Dar Al Huda Academy provides quality online Quran education to students worldwide with qualified teachers.',
+      footerAbout: 'Dar Al Huda Academy provides quality online Quran education to students worldwide with qualified Ustazs.',
       quickLinks: 'Quick Links',
       contactUs: 'Contact Us',
       followUs: 'Follow Us',
@@ -228,8 +228,6 @@ export default function HomePage(): React.ReactNode {
           <div className="absolute -bottom-8 left-20 w-72 h-72 bg-secondary rounded-full mix-blend-overlay filter blur-xl animate-blob animation-delay-4000" />
         </div>
 
-        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/arabesque.png')] opacity-5" />
-
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-32">
           <div className="text-center">
             <div className="mb-8">
@@ -249,11 +247,10 @@ export default function HomePage(): React.ReactNode {
               {t.heroSubtitle}
             </p>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 mt-16">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-6 mt-16">
               {[
-                { value: '500+', label: language === 'en' ? 'Students' : 'ተማሪዎች' },
-                { value: '20+', label: language === 'en' ? 'Teachers' : 'መምህራን' },
-                { value: '50+', label: language === 'en' ? 'Countries' : 'ሀገራት' },
+                { value: '50+', label: language === 'en' ? 'Students' : 'ተማሪዎች' },
+                { value: '5+', label: language === 'en' ? 'Ustazs' : 'መምህራን' },
                 { value: '9', label: language === 'en' ? 'Courses' : 'ኮርሶች' },
               ].map((stat, index) => (
                 <div key={index} className="text-center">
@@ -307,7 +304,7 @@ export default function HomePage(): React.ReactNode {
             <h2 className="text-3xl sm:text-4xl font-bold text-text mb-4">{t.whyUs}</h2>
             <p className="text-gray-500 max-w-2xl mx-auto">
               {language === 'en' 
-                ? 'We provide quality Islamic education with qualified teachers who are passionate about teaching the Quran.'
+                ? 'We provide quality Islamic education with qualified Ustazs who are passionate about teaching the Quran.'
                 : 'ቁርአንን ለማስተማር ፍቅር ያላቸው ብቁ መምህራን ጋር ጥራት ያለው ኢስላሚክ ትምህርት እንሰጣለን።'
               }
             </p>
@@ -315,7 +312,7 @@ export default function HomePage(): React.ReactNode {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
-              { icon: GraduationCap, title: language === 'en' ? 'Qualified Teachers' : 'ብቁ መምህራን', desc: language === 'en' ? 'Experienced and certified Quran teachers' : 'ልምድና ሰርተፊኬት ያላቸው የቁርአን መምህራን' },
+              { icon: GraduationCap, title: language === 'en' ? 'Qualified Ustazs' : 'ብቁ መምህራን', desc: language === 'en' ? 'Experienced and certified Quran Ustazs' : 'ልምድና ሰርተፊኬት ያላቸው የቁርአን መምህራን' },
               { icon: Clock, title: language === 'en' ? 'Flexible Schedule' : 'ተለዋዋጭ ሰዓት', desc: language === 'en' ? 'Learn at times that suit you best' : 'በሚመችዎት ሰዓት ይማሩ' },
               { icon: Users, title: language === 'en' ? 'One-on-One Classes' : 'የግል ትምህርት', desc: language === 'en' ? 'Personalized attention for each student' : 'ለእያንዳንዱ ተማሪ የግል ትኩረት' },
               { icon: Globe, title: language === 'en' ? 'Worldwide Access' : 'ዓለም አቀፍ', desc: language === 'en' ? 'Learn from anywhere in the world' : 'ከየትኛውም የዓለም ክፍል ይማሩ' },
@@ -462,7 +459,7 @@ export default function HomePage(): React.ReactNode {
                     {language === 'en' ? 'Phone Call' : 'ስልክ ይደውሉ'}
                   </h3>
                   <p className="text-sm text-gray-500 mb-2">+251 91 460 0349</p>
-                  <p className="text-sm text-gray-500 mb-4">0914198090</p>
+                  <p className="text-sm text-gray-500 mb-4">0921757379</p>
                   <Badge className="bg-primary/10 text-primary border-0">
                     {language === 'en' ? 'Click to Call' : 'ለመደወል ይጫኑ'}
                   </Badge>
@@ -478,7 +475,7 @@ export default function HomePage(): React.ReactNode {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">{t.readyToStart}</h2>
           <p className="text-white/80 text-lg mb-8">{t.readyDesc}</p>
-          <a href="https://wa.me/251914600349" target="_blank">
+          <a href="https://t.me/jemil1456" target="_blank">
             <Button size="lg" className="bg-accent hover:bg-accent/90 text-white text-lg px-12 py-6 rounded-full shadow-xl">
               {t.getStarted}
               <ArrowRight className="h-5 w-5 ml-2" />
@@ -499,6 +496,7 @@ export default function HomePage(): React.ReactNode {
                 <span className="text-xl font-bold">Dar Al Huda</span>
               </div>
               <p className="text-gray-400 text-sm">{t.footerAbout}</p>
+              <p className="text-gray-500 text-xs mt-3">📍 Dessie, Ethiopia</p>
             </div>
 
             <div>
@@ -518,7 +516,7 @@ export default function HomePage(): React.ReactNode {
                   <Phone className="h-4 w-4" /> +251 91 460 0349
                 </li>
                 <li className="flex items-center gap-2">
-                  <Phone className="h-4 w-4" /> 0914198090
+                  <Phone className="h-4 w-4" /> 0921757379
                 </li>
                 <li className="flex items-center gap-2">
                   <Mail className="h-4 w-4" /> mohammedjemal433@gmail.com
@@ -549,11 +547,13 @@ export default function HomePage(): React.ReactNode {
             <p className="text-gray-500 text-sm">
               © {new Date().getFullYear()} Dar Al Huda Academy. {t.rights}
             </p>
+            <p className="text-gray-600 text-xs mt-2">
+              Developed by Abubeker Oumer
+            </p>
           </div>
         </div>
       </footer>
 
-      {/* REMOVED: scroll-behavior: smooth from style tag */}
       <style jsx global>{`
         @keyframes blob {
           0% { transform: translate(0px, 0px) scale(1); }

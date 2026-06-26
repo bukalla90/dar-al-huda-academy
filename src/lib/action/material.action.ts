@@ -4,12 +4,11 @@
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
-import { writeFile, mkdir } from 'fs/promises';
-import path from 'path';
 
 export async function uploadMaterial(formData: FormData): Promise<{
   success: boolean;
   error?: string;
+  url?: string;
 }> {
   try {
     const cookieStore = await cookies();
@@ -29,24 +28,33 @@ export async function uploadMaterial(formData: FormData): Promise<{
     if (file.type.startsWith('audio/')) type = 'AUDIO';
     else if (file.type.startsWith('image/')) type = 'IMAGE';
 
-    // Save file locally
-    const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
-    await mkdir(uploadsDir, { recursive: true });
+    // Upload to Cloudinary using fetch API
+    const cloudinaryFormData = new FormData();
+    cloudinaryFormData.append('file', file);
+    cloudinaryFormData.append('upload_preset', 'dar-al-huda-unsigned');
+    cloudinaryFormData.append('folder', 'dar-al-huda-materials');
 
-    const fileName = `${Date.now()}-${file.name.replace(/\s+/g, '-')}`;
-    const filePath = path.join(uploadsDir, fileName);
+    const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
     
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-    await writeFile(filePath, buffer);
+    const response = await fetch(
+      `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`,
+      {
+        method: 'POST',
+        body: cloudinaryFormData,
+      }
+    );
 
-    const fileUrl = `/uploads/${fileName}`;
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('Cloudinary error:', errorData);
+      return { success: false, error: 'Upload failed. Please try again.' };
+    }
 
-    // If admin is uploading, find a default teacher or use the first teacher
+    const data = await response.json();
+
+    // Find teacher ID for admin uploads
     let finalTeacherId = teacherId;
-    
     if (!finalTeacherId || userRole === 'ADMIN') {
-      // Find any teacher to assign the material to
       const anyTeacher = await prisma.teacher.findFirst();
       if (anyTeacher) {
         finalTeacherId = anyTeacher.id;
@@ -59,7 +67,7 @@ export async function uploadMaterial(formData: FormData): Promise<{
     await prisma.material.create({
       data: {
         title,
-        fileUrl,
+        fileUrl: data.secure_url,
         type,
         teacherId: finalTeacherId,
         studentId: studentId || null,
@@ -67,10 +75,10 @@ export async function uploadMaterial(formData: FormData): Promise<{
     });
 
     revalidatePath('/admin/materials');
-    return { success: true };
+    return { success: true, url: data.secure_url };
   } catch (error) {
     console.error('Upload error:', error);
-    return { success: false, error: 'Failed to upload material' };
+    return { success: false, error: 'Failed to upload file. Please try again.' };
   }
 }
 
