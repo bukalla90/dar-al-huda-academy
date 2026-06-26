@@ -7,7 +7,7 @@ import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { 
   BookOpen, Home, Users, Calendar, Settings,
-  Menu, X,
+  Menu, X, GraduationCap,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { LogoutButton } from '@/components/auth/logout-button';
@@ -31,10 +31,7 @@ export function TeacherNav(): React.ReactNode {
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-md">
               <BookOpen className="h-5 w-5 text-white" />
             </div>
-            <div className="hidden sm:block">
-              <span className="text-lg font-bold text-primary leading-tight">Dar Al Huda</span>
-              <p className="text-[10px] text-gray-500 dark:text-gray-400 leading-tight">Online Quran Academy</p>
-            </div>
+            <span className="text-sm sm:text-lg font-bold text-primary">Dar Al Huda</span>
           </Link>
 
           {/* Desktop Navigation */}
@@ -84,10 +81,20 @@ export function TeacherNav(): React.ReactNode {
             </div>
           </nav>
 
-          {/* Mobile: Logo text + hamburger */}
-          <div className="flex items-center gap-3 md:hidden">
-            {/* Show Dar Al Huda text on mobile */}
-            <span className="text-sm font-bold text-primary">Dar Al Huda</span>
+          {/* Mobile: Students link + hamburger */}
+          <div className="flex items-center gap-2 md:hidden">
+            <Link
+              href="/teacher/students"
+              className={cn(
+                'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors',
+                pathname === '/teacher/students'
+                  ? 'bg-primary/10 text-primary'
+                  : 'text-gray-600 dark:text-gray-300'
+              )}
+            >
+              <Users className="h-4 w-4" />
+              <span>Students</span>
+            </Link>
             
             <Button
               variant="ghost"
@@ -108,10 +115,7 @@ export function TeacherNav(): React.ReactNode {
             <div className="fixed inset-0 bg-black/50" onClick={() => setMobileMenuOpen(false)} />
             <div className="fixed top-0 left-0 bottom-0 w-64 bg-white dark:bg-gray-900 shadow-xl p-6 overflow-y-auto">
               <div className="flex items-center justify-between mb-6">
-                <div>
-                  <span className="text-lg font-bold text-primary">Dar Al Huda</span>
-                  <p className="text-[10px] text-gray-500">Menu</p>
-                </div>
+                <span className="text-lg font-bold text-primary">Menu</span>
                 <Button variant="ghost" size="icon" onClick={() => setMobileMenuOpen(false)} className="dark:text-gray-300">
                   <X className="h-5 w-5" />
                 </Button>
