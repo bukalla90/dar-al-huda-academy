@@ -2,20 +2,13 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { FileText, Music, Image, Download, Upload, FolderOpen, X, Loader2, Eye } from 'lucide-react';
-import { getMaterials, uploadMaterial } from '@/lib/action/material.action';
+import { FileText, Music, Image, Download, Upload, FolderOpen, X, Loader2, Eye, Trash2 } from 'lucide-react';
+import { getMaterials, uploadMaterial, deleteMaterial } from '@/lib/action/material.action';
 
 interface MaterialType {
   id: string;
@@ -36,6 +29,7 @@ export default function MaterialsPage(): React.ReactNode {
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string>('');
   const [success, setSuccess] = useState<string>('');
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     const result = await getMaterials();
@@ -78,6 +72,21 @@ export default function MaterialsPage(): React.ReactNode {
     setUploading(false);
   }
 
+  async function handleDelete(materialId: string): Promise<void> {
+    if (!confirm('Are you sure you want to delete this material?')) return;
+    
+    setDeleting(materialId);
+    const result = await deleteMaterial(materialId);
+    if (result.success) {
+      setSuccess('Material deleted!');
+      loadData();
+      setTimeout(() => setSuccess(''), 3000);
+    } else {
+      setError(result.error || 'Failed to delete');
+    }
+    setDeleting(null);
+  }
+
   const typeIcon: Record<string, typeof FileText> = {
     PDF: FileText,
     AUDIO: Music,
@@ -108,8 +117,7 @@ export default function MaterialsPage(): React.ReactNode {
             <p className="text-white/80 mt-1">Upload and manage learning resources</p>
           </div>
           <Button onClick={() => setShowUpload(!showUpload)} className="bg-white text-purple-600 hover:bg-white/90">
-            <Upload className="h-4 w-4 mr-2" />
-            Upload New
+            <Upload className="h-4 w-4 mr-2" />Upload New
           </Button>
         </div>
       </div>
@@ -119,42 +127,29 @@ export default function MaterialsPage(): React.ReactNode {
 
       {/* Upload Form */}
       {showUpload && (
-        <Card className="dark:bg-gray-800 dark:border-gray-700">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="dark:text-white">Upload Material</CardTitle>
+        <Card className="dark:bg-gray-800 dark:border-gray-700 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold dark:text-white">Upload Material</h2>
             <Button variant="ghost" size="icon" onClick={() => setShowUpload(false)}>
               <X className="h-4 w-4" />
             </Button>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleUpload} className="space-y-4">
-              <div>
-                <Label className="dark:text-gray-300">Title *</Label>
-                <Input
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="e.g., Tajweed Rules Book, Surah Al-Fatiha Recitation"
-                  className="dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                />
-              </div>
-              <div>
-                <Label className="dark:text-gray-300">File * (PDF, Audio, or Image)</Label>
-                <Input
-                  type="file"
-                  accept=".pdf,.mp3,.wav,.png,.jpg,.jpeg,.webp"
-                  onChange={(e) => setFile(e.target.files?.[0] || null)}
-                  className="dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                />
-              </div>
-              <Button type="submit" disabled={uploading} className="w-full">
-                {uploading ? (
-                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Uploading...</>
-                ) : (
-                  <><Upload className="h-4 w-4 mr-2" /> Upload</>
-                )}
-              </Button>
-            </form>
-          </CardContent>
+          </div>
+          <form onSubmit={handleUpload} className="space-y-4">
+            <div>
+              <Label className="dark:text-gray-300">Title *</Label>
+              <Input value={title} onChange={(e) => setTitle(e.target.value)}
+                placeholder="e.g., Tajweed Rules Book" className="dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
+            </div>
+            <div>
+              <Label className="dark:text-gray-300">File * (PDF, Audio, or Image)</Label>
+              <Input type="file" accept=".pdf,.mp3,.wav,.png,.jpg,.jpeg,.webp"
+                onChange={(e) => setFile(e.target.files?.[0] || null)}
+                className="dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
+            </div>
+            <Button type="submit" disabled={uploading} className="w-full">
+              {uploading ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Uploading...</> : <><Upload className="h-4 w-4 mr-2" />Upload</>}
+            </Button>
+          </form>
         </Card>
       )}
 
@@ -175,24 +170,26 @@ export default function MaterialsPage(): React.ReactNode {
               return (
                 <Card key={material.id} className="dark:bg-gray-800 dark:border-gray-700">
                   <CardContent className="pt-4">
-                    <div className="flex items-start gap-4">
-                      <div className={`p-3 rounded-xl bg-gradient-to-br ${gradient}`}>
-                        <Icon className="h-6 w-6 text-white" />
+                    <div className="flex items-start gap-3">
+                      <div className={`p-2.5 rounded-xl bg-gradient-to-br ${gradient}`}>
+                        <Icon className="h-5 w-5 text-white" />
                       </div>
-                      <div className="flex-1">
-                        <h3 className="font-semibold dark:text-white">{material.title}</h3>
-                        <Badge variant="outline" className="mt-1 dark:border-gray-600 dark:text-gray-300">{material.type}</Badge>
-                        <div className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                          <p>By: {material.teacher.fullName}</p>
-                          {material.student && <p>For: {material.student.fullName}</p>}
-                          <p className="text-xs mt-1">{new Date(material.createdAt).toLocaleDateString()}</p>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-start">
+                          <h3 className="font-semibold text-sm dark:text-white truncate">{material.title}</h3>
+                          <Button variant="ghost" size="icon" onClick={() => handleDelete(material.id)}
+                            disabled={deleting === material.id}
+                            className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 -mt-1 -mr-2 shrink-0">
+                            {deleting === material.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                          </Button>
                         </div>
-                        <a href={material.fileUrl} target="_blank" className="inline-flex items-center gap-1 text-primary font-medium text-sm mt-3 hover:underline">
-                          {material.type === 'PDF' || material.type === 'IMAGE' ? (
-                            <><Eye className="h-4 w-4" /> View</>
-                          ) : (
-                            <><Download className="h-4 w-4" /> Download</>
-                          )}
+                        <Badge variant="outline" className="mt-1 text-xs dark:border-gray-600 dark:text-gray-300">{material.type}</Badge>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                          <p>By: {material.teacher.fullName}</p>
+                          <p className="text-xs mt-0.5">{new Date(material.createdAt).toLocaleDateString()}</p>
+                        </div>
+                        <a href={material.fileUrl} target="_blank" className="inline-flex items-center gap-1 text-primary font-medium text-xs mt-2 hover:underline">
+                          {material.type === 'PDF' || material.type === 'IMAGE' ? <><Eye className="h-3 w-3" />View</> : <><Download className="h-3 w-3" />Download</>}
                         </a>
                       </div>
                     </div>
@@ -214,8 +211,15 @@ export default function MaterialsPage(): React.ReactNode {
                       <div className={`p-3 rounded-xl bg-gradient-to-br ${gradient} group-hover:scale-110 transition-transform`}>
                         <Icon className="h-6 w-6 text-white" />
                       </div>
-                      <div>
-                        <h3 className="font-semibold text-lg dark:text-white">{material.title}</h3>
+                      <div className="flex-1">
+                        <div className="flex justify-between items-start">
+                          <h3 className="font-semibold text-lg dark:text-white">{material.title}</h3>
+                          <Button variant="ghost" size="icon" onClick={() => handleDelete(material.id)}
+                            disabled={deleting === material.id}
+                            className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20">
+                            {deleting === material.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                          </Button>
+                        </div>
                         <Badge variant="outline" className="mt-1 dark:border-gray-600 dark:text-gray-300">{material.type}</Badge>
                       </div>
                     </div>
@@ -225,11 +229,7 @@ export default function MaterialsPage(): React.ReactNode {
                       <p>{new Date(material.createdAt).toLocaleDateString()}</p>
                     </div>
                     <a href={material.fileUrl} target="_blank" className="inline-flex items-center gap-2 text-primary font-medium hover:underline">
-                      {material.type === 'PDF' || material.type === 'IMAGE' ? (
-                        <><Eye className="h-4 w-4" /> View File</>
-                      ) : (
-                        <><Download className="h-4 w-4" /> Download File</>
-                      )}
+                      {material.type === 'PDF' || material.type === 'IMAGE' ? <><Eye className="h-4 w-4" />View File</> : <><Download className="h-4 w-4" />Download File</>}
                     </a>
                   </CardContent>
                 </Card>

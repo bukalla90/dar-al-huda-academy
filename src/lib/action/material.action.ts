@@ -23,12 +23,10 @@ export async function uploadMaterial(formData: FormData): Promise<{
       return { success: false, error: 'File and title are required' };
     }
 
-    // Determine file type
     let type: 'PDF' | 'AUDIO' | 'IMAGE' = 'PDF';
     if (file.type.startsWith('audio/')) type = 'AUDIO';
     else if (file.type.startsWith('image/')) type = 'IMAGE';
 
-    // Upload to Cloudinary using fetch API
     const cloudinaryFormData = new FormData();
     cloudinaryFormData.append('file', file);
     cloudinaryFormData.append('upload_preset', 'dar-al-huda-unsigned');
@@ -52,7 +50,6 @@ export async function uploadMaterial(formData: FormData): Promise<{
 
     const data = await response.json();
 
-    // Find teacher ID for admin uploads
     let finalTeacherId = teacherId;
     if (!finalTeacherId || userRole === 'ADMIN') {
       const anyTeacher = await prisma.teacher.findFirst();
@@ -63,7 +60,6 @@ export async function uploadMaterial(formData: FormData): Promise<{
       }
     }
 
-    // Save to database
     await prisma.material.create({
       data: {
         title,
@@ -107,5 +103,23 @@ export async function getMaterials(): Promise<{
     return { success: true, materials };
   } catch (error) {
     return { success: false, error: 'Failed to fetch materials' };
+  }
+}
+
+// ADD THIS - Delete material function
+export async function deleteMaterial(materialId: string): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  try {
+    await prisma.material.delete({
+      where: { id: materialId },
+    });
+
+    revalidatePath('/admin/materials');
+    return { success: true };
+  } catch (error) {
+    console.error('Delete error:', error);
+    return { success: false, error: 'Failed to delete material' };
   }
 }
