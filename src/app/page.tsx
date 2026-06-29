@@ -1,8 +1,8 @@
-// src/app/page.tsx
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -142,11 +142,31 @@ export default function HomePage(): React.ReactNode {
       }`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <Link href="/" className="flex items-center gap-2" prefetch={true}>
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg">
-                <BookOpen className="h-6 w-6 text-white" />
-              </div>
-              <span className={`text-xl font-bold ${isScrolled ? 'text-primary' : 'text-white'}`}>Dar Al Huda</span>
+            {/* Logo */}
+            <Link href="/" className="flex items-center" prefetch={true}>
+              {isScrolled ? (
+                /* Scrolled: full colour logo on white bg */
+                <Image
+                  src="/dar-al-huda-logo.svg"
+                  alt="Dar Al Huda Academy"
+                  width={180}
+                  height={56}
+                  priority
+                  className="h-10 w-auto"
+                />
+              ) : (
+                /* On hero: white-tinted version — we overlay a semi-transparent white layer */
+                <div className="relative">
+                  <Image
+                    src="/dar-al-huda-logo.svg"
+                    alt="Dar Al Huda Academy"
+                    width={180}
+                    height={56}
+                    priority
+                    className="h-10 w-auto opacity-95"
+                  />
+                </div>
+              )}
             </Link>
 
             <div className="hidden lg:flex items-center gap-8">
@@ -401,11 +421,15 @@ export default function HomePage(): React.ReactNode {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
             <div>
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
-                  <BookOpen className="h-6 w-6 text-white" />
-                </div>
-                <span className="text-xl font-bold">Dar Al Huda</span>
+              {/* Footer logo — invert to white since bg is dark */}
+              <div className="mb-4">
+                <Image
+                  src="/dar-al-huda-logo.svg"
+                  alt="Dar Al Huda Academy"
+                  width={200}
+                  height={62}
+                  className="h-12 w-auto"
+                />
               </div>
               <p className="text-gray-400 text-sm">{t.footerAbout}</p>
               <p className="text-gray-500 text-xs mt-3">📍 Dessie, Ethiopia</p>
