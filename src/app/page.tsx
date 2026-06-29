@@ -19,7 +19,6 @@ export default function HomePage(): React.ReactNode {
   const [language, setLanguage] = useState<'en' | 'am'>('en');
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
 
-  // Optimize scroll handler
   useEffect(() => {
     let ticking = false;
     const handleScroll = (): void => {
@@ -34,6 +33,8 @@ export default function HomePage(): React.ReactNode {
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // ... (keep all translations, classTimes, heroStats, whyUsItems, etc. - they are unchanged)
 
   const translations = useMemo(() => ({
     en: {
@@ -87,7 +88,6 @@ export default function HomePage(): React.ReactNode {
   }), []);
 
   const t = translations[language];
-
   const classTimes = useMemo(() => [
     { group: 'Group 1', time: '12:00 PM – 1:30 PM' },
     { group: 'Group 2', time: '3:00 PM – 6:00 PM' },
@@ -96,40 +96,29 @@ export default function HomePage(): React.ReactNode {
     { group: 'Group 5', time: '1:00 AM – 1:30 AM' },
     { group: 'Group 6', time: '3:00 AM – 5:00 AM' },
   ], []);
-
   const heroStats = useMemo(() => [
     { value: '50+', labelEn: 'Students', labelAm: 'ተማሪዎች' },
     { value: '5+', labelEn: 'Ustazs', labelAm: 'መምህራን' },
     { value: '9', labelEn: 'Courses', labelAm: 'ኮርሶች' },
   ], []);
-
   const whyUsItems = useMemo(() => [
     { icon: GraduationCap, titleEn: 'Qualified Ustazs', titleAm: 'ብቁ መምህራን', descEn: 'Experienced and certified Quran Ustazs', descAm: 'ልምድና ሰርተፊኬት ያላቸው የቁርአን መምህራን' },
     { icon: Clock, titleEn: 'Flexible Schedule', titleAm: 'ተለዋዋጭ ሰዓት', descEn: 'Learn at times that suit you best', descAm: 'በሚመችዎት ሰዓት ይማሩ' },
     { icon: Users, titleEn: 'One-on-One Classes', titleAm: 'የግል ትምህርት', descEn: 'Personalized attention for each student', descAm: 'ለእያንዳንዱ ተማሪ የግል ትኩረት' },
     { icon: Globe, titleEn: 'Worldwide Access', titleAm: 'ዓለም አቀፍ', descEn: 'Learn from anywhere in the world', descAm: 'ከየትኛውም የዓለም ክፍል ይማሩ' },
   ], []);
-
   const quranCourses = useMemo(() => courses.filter(c => c.category === 'QURAN'), []);
   const islamicCourses = useMemo(() => courses.filter(c => c.category === 'ISLAMIC_STUDIES'), []);
-
   const getCleanTitle = useCallback((course: typeof courses[0]): string => {
     if (language === 'en') return course.titleEn.replace(/\s*\(.*?\)\s*/g, '').trim();
     return course.titleAm;
   }, [language]);
-
   const getCleanDescription = useCallback((course: typeof courses[0]): string => {
     if (language === 'en') return course.descriptionEn;
     return course.descriptionAm;
   }, [language]);
-
-  const toggleLanguage = useCallback(() => {
-    setLanguage(prev => prev === 'en' ? 'am' : 'en');
-  }, []);
-
-  const toggleMobileMenu = useCallback(() => {
-    setMobileMenuOpen(prev => !prev);
-  }, []);
+  const toggleLanguage = useCallback(() => setLanguage(prev => prev === 'en' ? 'am' : 'en'), []);
+  const toggleMobileMenu = useCallback(() => setMobileMenuOpen(prev => !prev), []);
 
   return (
     <div className="min-h-screen bg-background">
@@ -139,18 +128,16 @@ export default function HomePage(): React.ReactNode {
       }`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 sm:h-20">
-            {/* Logo - Full height of navbar */}
-            <Link href="/" className="flex items-center gap-2 shrink-0" prefetch={true}>
-              <div className={`relative h-10 sm:h-14 w-auto transition-all duration-300 ${isScrolled ? '' : 'brightness-0 invert'}`}>
-                <Image
-                  src="/dar-al-huda-logo.svg"
-                  alt="Dar Al Huda Academy"
-                  width={180}
-                  height={56}
-                  className="h-10 sm:h-14 w-auto"
-                  priority
-                />
-              </div>
+            {/* Logo */}
+            <Link href="/" className="flex items-center shrink-0" prefetch={true}>
+              <Image
+                src="/dar-al-huda-logo.svg"
+                alt="Dar Al Huda Academy"
+                width={200}
+                height={60}
+                className={`h-12 sm:h-16 w-auto transition-all duration-300 ${!isScrolled ? 'brightness-0 invert' : ''}`}
+                priority
+              />
             </Link>
 
             <div className="hidden lg:flex items-center gap-6 ml-8">
@@ -427,14 +414,13 @@ export default function HomePage(): React.ReactNode {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
             <div>
-              {/* Logo in footer */}
               <div className="mb-4">
                 <Image
                   src="/dar-al-huda-logo.svg"
                   alt="Dar Al Huda Academy"
-                  width={160}
-                  height={48}
-                  className="h-12 w-auto brightness-0 invert"
+                  width={180}
+                  height={54}
+                  className="h-14 w-auto"
                 />
               </div>
               <p className="text-gray-400 text-sm">{t.footerAbout}</p>
