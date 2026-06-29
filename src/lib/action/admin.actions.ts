@@ -81,6 +81,7 @@ async function fetchDashboardStats(): Promise<{ success: boolean; stats?: Dashbo
 
     return { success: true, stats };
   } catch (error) {
+    console.error('fetchDashboardStats error:', error);
     return { success: false, error: 'Failed to fetch dashboard stats' };
   }
 }
@@ -103,26 +104,30 @@ async function fetchRecentActivity(): Promise<{ success: boolean; activities?: R
     ]);
 
     const activities: RecentActivity[] = [
-      ...recentStudents.map((s: { id: string; fullName: string; createdAt: Date }) => ({
+      ...recentStudents.map((s) => ({
         id: s.id, type: 'STUDENT' as const, title: 'New Student Registered',
         description: `${s.fullName} joined the academy`, timestamp: s.createdAt, status: 'Active',
       })),
-      ...recentTeachers.map((t: { id: string; fullName: string; createdAt: Date }) => ({
+      ...recentTeachers.map((t) => ({
         id: t.id, type: 'TEACHER' as const, title: 'New Teacher Added',
         description: `${t.fullName} joined as teacher`, timestamp: t.createdAt, status: 'Active',
       })),
-      ...recentPayments.map((p: { id: string; amount: number; status: string; createdAt: Date; student: { fullName: string } }) => ({
+      ...recentPayments.map((p) => ({
         id: p.id, type: 'PAYMENT' as const, title: 'Payment Update',
         description: `${p.student.fullName} - ETB ${p.amount} - ${p.status}`, timestamp: p.createdAt, status: p.status,
       })),
-      ...recentApplications.map((a: { id: string; fullName: string; status: string; createdAt: Date }) => ({
+      ...recentApplications.map((a) => ({
         id: a.id, type: 'APPLICATION' as const, title: 'New Application',
         description: `${a.fullName} applied for courses`, timestamp: a.createdAt, status: a.status,
       })),
-    ].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()).slice(0, 10);
+    ]
+    .filter((activity) => activity.timestamp instanceof Date && !isNaN(activity.timestamp.getTime()))
+    .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
+    .slice(0, 10);
 
     return { success: true, activities };
   } catch (error) {
+    console.error('fetchRecentActivity error:', error);
     return { success: false, error: 'Failed to fetch recent activity' };
   }
 }
@@ -176,6 +181,7 @@ async function fetchChartData(year?: string): Promise<{ success: boolean; chartD
 
     return { success: true, chartData: { courseEnrollment, paymentOverview, monthlyIncome } };
   } catch (error) {
+    console.error('fetchChartData error:', error);
     return { success: false, error: 'Failed to fetch chart data' };
   }
 }
