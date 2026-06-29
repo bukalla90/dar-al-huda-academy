@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Video, Plus, Calendar, Clock, X, Loader2, Users, Check, ExternalLink, Link2 } from 'lucide-react';
+import { Video, Plus, Calendar, Clock, X, Loader2, Users, Check, ExternalLink, Link2, CheckCircle2 } from 'lucide-react';
 import { getTeacherSessions, getTeacherStudents, createClassSession } from '@/lib/action/class.action';
 
 interface SessionStudent {
@@ -82,13 +82,7 @@ export default function TeacherSchedulePage(): React.ReactNode {
       return;
     }
 
-    if (!zoomLink) {
-      setError('Please paste your Zoom meeting link');
-      return;
-    }
-
-    // Basic Zoom link validation
-    if (!zoomLink.includes('zoom.us')) {
+    if (!zoomLink || !zoomLink.includes('zoom.us')) {
       setError('Please enter a valid Zoom meeting link');
       return;
     }
@@ -119,8 +113,27 @@ export default function TeacherSchedulePage(): React.ReactNode {
     setLoading(false);
   }
 
-  const morningSessions = sessions.filter((s) => new Date(s.scheduledAt).getHours() < 12);
-  const afternoonSessions = sessions.filter((s) => new Date(s.scheduledAt).getHours() >= 12);
+  // Filter: Only show sessions from last 24 hours and future
+  const now = new Date();
+  const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  
+  const recentAndUpcomingSessions = sessions.filter((s) => {
+    const sessionTime = new Date(s.scheduledAt);
+    return sessionTime >= twentyFourHoursAgo;
+  });
+
+  const morningSessions = recentAndUpcomingSessions.filter((s) => new Date(s.scheduledAt).getHours() < 12);
+  const afternoonSessions = recentAndUpcomingSessions.filter((s) => new Date(s.scheduledAt).getHours() >= 12);
+
+  // Check if session is still joinable (not completed and within time window)
+  function isJoinable(session: SessionType): boolean {
+    const sessionTime = new Date(session.scheduledAt);
+    const diffMs = sessionTime.getTime() - now.getTime();
+    const diffMinutes = Math.floor(diffMs / 60000);
+    
+    // Can join 15 min before and up to 2 hours after start
+    return diffMinutes <= 15 && diffMinutes > -120 && session.status !== 'COMPLETED' && session.status !== 'MISSED';
+  }
 
   function getStatusBadge(status: string): React.ReactNode {
     const variants: Record<string, 'success' | 'warning' | 'secondary' | 'destructive'> = {
@@ -148,7 +161,9 @@ export default function TeacherSchedulePage(): React.ReactNode {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">My Schedule</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Manage Zoom class sessions</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            Showing sessions from last 24 hours and upcoming
+          </p>
         </div>
         <Button onClick={() => setShowForm(!showForm)} className="bg-primary">
           <Plus className="h-4 w-4 mr-2" />New Session
@@ -171,7 +186,6 @@ export default function TeacherSchedulePage(): React.ReactNode {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {/* Zoom Link Input */}
               <div>
                 <Label className="dark:text-gray-300">
                   <Link2 className="h-4 w-4 inline mr-1" />
@@ -252,37 +266,52 @@ export default function TeacherSchedulePage(): React.ReactNode {
         <CardContent className="p-0">
           {morningSessions.length > 0 ? (
             <div className="divide-y dark:divide-gray-700">
-              {morningSessions.map((session) => (
-                <div key={session.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Video className="h-5 w-5 text-primary" />
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium dark:text-white text-sm">
-                            {new Date(session.scheduledAt).toLocaleDateString()} at{' '}
-                            {new Date(session.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </span>
-                          {getStatusBadge(session.status)}
-                        </div>
-                        <div className="flex items-center gap-1 mt-1">
-                          <Users className="h-3 w-3 text-gray-400" />
-                          <span className="text-xs text-gray-500 dark:text-gray-400">
-                            {session.sessionStudents.map(s => s.student.fullName).join(', ')}
-                          </span>
+              {morningSessions.map((session) => {
+                const joinable = isJoinable(session);
+                const isPast = new Date(session.scheduledAt) < now;
+                
+                return (
+                  <div key={session.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Video className="h-5 w-5 text-primary" />
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium dark:text-white text-sm">
+                              {new Date(session.scheduledAt).toLocaleDateString()} at{' '}
+                              {new Date(session.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                            {getStatusBadge(session.status)}
+                          </div>
+                          <div className="flex items-center gap-1 mt-1">
+                            <Users className="h-3 w-3 text-gray-400" />
+                            <span className="text-xs text-gray-500 dark:text-gray-400">
+                              {session.sessionStudents.map(s => s.student.fullName).join(', ')}
+                            </span>
+                          </div>
                         </div>
                       </div>
+                      {joinable && session.meetingUrl && (
+                        <a href={session.meetingUrl} target="_blank" rel="noopener noreferrer">
+                          <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
+                            <ExternalLink className="h-4 w-4 mr-1" />Join Zoom
+                          </Button>
+                        </a>
+                      )}
+                      {isPast && !joinable && session.status === 'COMPLETED' && (
+                        <Badge variant="outline" className="text-green-600 dark:text-green-400 flex items-center gap-1">
+                          <CheckCircle2 className="h-3 w-3" />Done
+                        </Badge>
+                      )}
+                      {isPast && !joinable && session.status === 'MISSED' && (
+                        <Badge variant="outline" className="text-red-500 flex items-center gap-1">
+                          <X className="h-3 w-3" />Missed
+                        </Badge>
+                      )}
                     </div>
-                    {session.meetingUrl && (
-                      <a href={session.meetingUrl} target="_blank" rel="noopener noreferrer">
-                        <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
-                          <ExternalLink className="h-4 w-4 mr-1" />Join Zoom
-                        </Button>
-                      </a>
-                    )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <div className="p-8 text-center text-gray-500 dark:text-gray-400">No morning sessions</div>
@@ -300,37 +329,52 @@ export default function TeacherSchedulePage(): React.ReactNode {
         <CardContent className="p-0">
           {afternoonSessions.length > 0 ? (
             <div className="divide-y dark:divide-gray-700">
-              {afternoonSessions.map((session) => (
-                <div key={session.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Video className="h-5 w-5 text-primary" />
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium dark:text-white text-sm">
-                            {new Date(session.scheduledAt).toLocaleDateString()} at{' '}
-                            {new Date(session.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </span>
-                          {getStatusBadge(session.status)}
-                        </div>
-                        <div className="flex items-center gap-1 mt-1">
-                          <Users className="h-3 w-3 text-gray-400" />
-                          <span className="text-xs text-gray-500 dark:text-gray-400">
-                            {session.sessionStudents.map(s => s.student.fullName).join(', ')}
-                          </span>
+              {afternoonSessions.map((session) => {
+                const joinable = isJoinable(session);
+                const isPast = new Date(session.scheduledAt) < now;
+                
+                return (
+                  <div key={session.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Video className="h-5 w-5 text-primary" />
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium dark:text-white text-sm">
+                              {new Date(session.scheduledAt).toLocaleDateString()} at{' '}
+                              {new Date(session.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                            {getStatusBadge(session.status)}
+                          </div>
+                          <div className="flex items-center gap-1 mt-1">
+                            <Users className="h-3 w-3 text-gray-400" />
+                            <span className="text-xs text-gray-500 dark:text-gray-400">
+                              {session.sessionStudents.map(s => s.student.fullName).join(', ')}
+                            </span>
+                          </div>
                         </div>
                       </div>
+                      {joinable && session.meetingUrl && (
+                        <a href={session.meetingUrl} target="_blank" rel="noopener noreferrer">
+                          <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
+                            <ExternalLink className="h-4 w-4 mr-1" />Join Zoom
+                          </Button>
+                        </a>
+                      )}
+                      {isPast && !joinable && session.status === 'COMPLETED' && (
+                        <Badge variant="outline" className="text-green-600 dark:text-green-400 flex items-center gap-1">
+                          <CheckCircle2 className="h-3 w-3" />Done
+                        </Badge>
+                      )}
+                      {isPast && !joinable && session.status === 'MISSED' && (
+                        <Badge variant="outline" className="text-red-500 flex items-center gap-1">
+                          <X className="h-3 w-3" />Missed
+                        </Badge>
+                      )}
                     </div>
-                    {session.meetingUrl && (
-                      <a href={session.meetingUrl} target="_blank" rel="noopener noreferrer">
-                        <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
-                          <ExternalLink className="h-4 w-4 mr-1" />Join Zoom
-                        </Button>
-                      </a>
-                    )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <div className="p-8 text-center text-gray-500 dark:text-gray-400">No afternoon sessions</div>
