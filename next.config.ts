@@ -14,7 +14,6 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  // serverActions is stable in Next.js 16, no need for experimental
 }
 
 export default nextConfig

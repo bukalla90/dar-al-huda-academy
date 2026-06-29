@@ -1,3 +1,4 @@
+// src/app/page.tsx
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -18,7 +19,7 @@ export default function HomePage(): React.ReactNode {
   const [language, setLanguage] = useState<'en' | 'am'>('en');
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
 
-  // Optimize scroll handler with passive listener and requestAnimationFrame
+  // Optimize scroll handler
   useEffect(() => {
     let ticking = false;
     const handleScroll = (): void => {
@@ -34,7 +35,6 @@ export default function HomePage(): React.ReactNode {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Memoize translations to prevent re-renders
   const translations = useMemo(() => ({
     en: {
       home: 'Home', about: 'About', courses: 'Courses', contact: 'Contact',
@@ -88,7 +88,6 @@ export default function HomePage(): React.ReactNode {
 
   const t = translations[language];
 
-  // Memoize static data
   const classTimes = useMemo(() => [
     { group: 'Group 1', time: '12:00 PM – 1:30 PM' },
     { group: 'Group 2', time: '3:00 PM – 6:00 PM' },
@@ -111,7 +110,6 @@ export default function HomePage(): React.ReactNode {
     { icon: Globe, titleEn: 'Worldwide Access', titleAm: 'ዓለም አቀፍ', descEn: 'Learn from anywhere in the world', descAm: 'ከየትኛውም የዓለም ክፍል ይማሩ' },
   ], []);
 
-  // Memoize course filters
   const quranCourses = useMemo(() => courses.filter(c => c.category === 'QURAN'), []);
   const islamicCourses = useMemo(() => courses.filter(c => c.category === 'ISLAMIC_STUDIES'), []);
 
@@ -125,7 +123,6 @@ export default function HomePage(): React.ReactNode {
     return course.descriptionAm;
   }, [language]);
 
-  // Memoize language change handler
   const toggleLanguage = useCallback(() => {
     setLanguage(prev => prev === 'en' ? 'am' : 'en');
   }, []);
@@ -141,35 +138,22 @@ export default function HomePage(): React.ReactNode {
         isScrolled ? 'bg-white/95 backdrop-blur-md shadow-lg' : 'bg-transparent'
       }`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            {/* Logo */}
-            <Link href="/" className="flex items-center" prefetch={true}>
-              {isScrolled ? (
-                /* Scrolled: full colour logo on white bg */
+          <div className="flex items-center justify-between h-16 sm:h-20">
+            {/* Logo - Full height of navbar */}
+            <Link href="/" className="flex items-center gap-2 shrink-0" prefetch={true}>
+              <div className={`relative h-10 sm:h-14 w-auto transition-all duration-300 ${isScrolled ? '' : 'brightness-0 invert'}`}>
                 <Image
                   src="/dar-al-huda-logo.svg"
                   alt="Dar Al Huda Academy"
                   width={180}
                   height={56}
+                  className="h-10 sm:h-14 w-auto"
                   priority
-                  className="h-10 w-auto"
                 />
-              ) : (
-                /* On hero: white-tinted version — we overlay a semi-transparent white layer */
-                <div className="relative">
-                  <Image
-                    src="/dar-al-huda-logo.svg"
-                    alt="Dar Al Huda Academy"
-                    width={180}
-                    height={56}
-                    priority
-                    className="h-10 w-auto opacity-95"
-                  />
-                </div>
-              )}
+              </div>
             </Link>
 
-            <div className="hidden lg:flex items-center gap-8">
+            <div className="hidden lg:flex items-center gap-6 ml-8">
               {['home', 'courses', 'about', 'contact'].map((section) => (
                 <Link key={section} href={section === 'home' ? '/' : `#${section}`}
                   className={`text-sm font-medium ${isScrolled ? 'text-gray-700' : 'text-white'} hover:text-accent transition-colors`}>
@@ -187,13 +171,13 @@ export default function HomePage(): React.ReactNode {
 
               {isLoggedIn ? (
                 <Link href="/student" prefetch={true}>
-                  <Button className="bg-accent hover:bg-accent/90 text-white">
-                    {t.dashboard}<ArrowRight className="h-4 w-4 ml-2" />
+                  <Button className="bg-accent hover:bg-accent/90 text-white text-sm">
+                    {t.dashboard}<ArrowRight className="h-4 w-4 ml-1" />
                   </Button>
                 </Link>
               ) : (
                 <Link href="/login" prefetch={true}>
-                  <Button className={isScrolled ? 'bg-primary text-white hover:bg-primary/90' : 'bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white border border-white/30'}>
+                  <Button className={`text-sm ${isScrolled ? 'bg-primary text-white hover:bg-primary/90' : 'bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white border border-white/30'}`}>
                     {t.login}
                   </Button>
                 </Link>
@@ -378,27 +362,49 @@ export default function HomePage(): React.ReactNode {
             <p className="text-gray-500 max-w-2xl mx-auto">{t.howToRegisterDesc}</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-4xl mx-auto">
-            {[
-              { href: 'https://wa.me/251914600349', color: 'green', title: 'WhatsApp', text: '+251 91 460 0349' },
-              { href: 'https://t.me/jemil1456', color: 'blue', title: 'Telegram', text: '@jemil1456' },
-              { href: 'tel:+251914600349', color: 'primary', title: language === 'en' ? 'Phone Call' : 'ስልክ ይደውሉ', text: '+251 91 460 0349', subText: '0921757379' },
-            ].map((item, index) => (
-              <a key={index} href={item.href} target="_blank" className="group" rel="noopener noreferrer">
-                <Card className="hover:shadow-xl transition-all duration-300 border-0 h-full">
-                  <CardContent className="pt-8 pb-6 text-center">
-                    <div className={`w-16 h-16 rounded-2xl bg-${item.color}-100 flex items-center justify-center mx-auto mb-4 group-hover:bg-${item.color}-200 transition-colors`}>
-                      <MessageCircle className={`h-8 w-8 text-${item.color}-600`} />
-                    </div>
-                    <h3 className="text-lg font-semibold mb-2">{item.title}</h3>
-                    <p className="text-sm text-gray-500 mb-2">{item.text}</p>
-                    {item.subText && <p className="text-sm text-gray-500 mb-4">{item.subText}</p>}
-                    <Badge className={`bg-${item.color}-100 text-${item.color}-700 border-0`}>
-                      {language === 'en' ? 'Click to Chat' : 'ለማውራት ይጫኑ'}
-                    </Badge>
-                  </CardContent>
-                </Card>
-              </a>
-            ))}
+            <a href="https://wa.me/251914600349" target="_blank" className="group" rel="noopener noreferrer">
+              <Card className="hover:shadow-xl transition-all duration-300 border-0 h-full">
+                <CardContent className="pt-8 pb-6 text-center">
+                  <div className="w-16 h-16 rounded-2xl bg-green-100 flex items-center justify-center mx-auto mb-4 group-hover:bg-green-200 transition-colors">
+                    <MessageCircle className="h-8 w-8 text-green-600" />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2">WhatsApp</h3>
+                  <p className="text-sm text-gray-500 mb-4">+251 91 460 0349</p>
+                  <Badge className="bg-green-100 text-green-700 border-0">
+                    {language === 'en' ? 'Click to Chat' : 'ለማውራት ይጫኑ'}
+                  </Badge>
+                </CardContent>
+              </Card>
+            </a>
+            <a href="https://t.me/jemil1456" target="_blank" className="group" rel="noopener noreferrer">
+              <Card className="hover:shadow-xl transition-all duration-300 border-0 h-full">
+                <CardContent className="pt-8 pb-6 text-center">
+                  <div className="w-16 h-16 rounded-2xl bg-blue-100 flex items-center justify-center mx-auto mb-4 group-hover:bg-blue-200 transition-colors">
+                    <MessageCircle className="h-8 w-8 text-blue-600" />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2">Telegram</h3>
+                  <p className="text-sm text-gray-500 mb-4">@jemil1456</p>
+                  <Badge className="bg-blue-100 text-blue-700 border-0">
+                    {language === 'en' ? 'Click to Chat' : 'ለማውራት ይጫኑ'}
+                  </Badge>
+                </CardContent>
+              </Card>
+            </a>
+            <a href="tel:+251914600349" className="group">
+              <Card className="hover:shadow-xl transition-all duration-300 border-0 h-full">
+                <CardContent className="pt-8 pb-6 text-center">
+                  <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4 group-hover:bg-primary/20 transition-colors">
+                    <Phone className="h-8 w-8 text-primary" />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2">{language === 'en' ? 'Phone Call' : 'ስልክ ይደውሉ'}</h3>
+                  <p className="text-sm text-gray-500 mb-2">+251 91 460 0349</p>
+                  <p className="text-sm text-gray-500 mb-4">0921757379</p>
+                  <Badge className="bg-primary/10 text-primary border-0">
+                    {language === 'en' ? 'Click to Call' : 'ለመደወል ይጫኑ'}
+                  </Badge>
+                </CardContent>
+              </Card>
+            </a>
           </div>
         </div>
       </section>
@@ -421,14 +427,14 @@ export default function HomePage(): React.ReactNode {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
             <div>
-              {/* Footer logo — invert to white since bg is dark */}
+              {/* Logo in footer */}
               <div className="mb-4">
                 <Image
                   src="/dar-al-huda-logo.svg"
                   alt="Dar Al Huda Academy"
-                  width={200}
-                  height={62}
-                  className="h-12 w-auto"
+                  width={160}
+                  height={48}
+                  className="h-12 w-auto brightness-0 invert"
                 />
               </div>
               <p className="text-gray-400 text-sm">{t.footerAbout}</p>
