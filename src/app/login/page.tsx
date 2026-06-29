@@ -118,7 +118,7 @@ export default function LoginPage(): React.ReactNode {
                     </SelectTrigger>
                     <SelectContent className="dark:bg-gray-800 dark:border-gray-700">
                       <SelectItem value="ADMIN">Admin</SelectItem>
-                      <SelectItem value="TEACHER">Ustaz (Teacher)</SelectItem>
+                      <SelectItem value="TEACHER">Ustaz</SelectItem>
                       <SelectItem value="STUDENT">Student</SelectItem>
                     </SelectContent>
                   </Select>
