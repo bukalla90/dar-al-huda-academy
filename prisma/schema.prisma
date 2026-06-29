@@ -87,8 +87,8 @@ model Teacher {
 }
 
 model Student {
-  id             String    @id @default(cuid())
-  userId         String    @unique
+  id             String     @id @default(cuid())
+  userId         String     @unique
   teacherId      String?
   fullName       String
   age            Int
@@ -99,16 +99,16 @@ model Student {
   parentPhone    String
   parentWhatsapp String
   relationship   String
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
 
-  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  teacher          Teacher?          @relation(fields: [teacherId], references: [id])
-  progress         StudentProgress[]
-  payments         Payment[]
-  attendances      Attendance[]
-  materials        Material[]
-  sessionStudents  SessionStudent[]
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  teacher         Teacher?          @relation(fields: [teacherId], references: [id])
+  progress        StudentProgress[]
+  payments        Payment[]
+  attendances     Attendance[]
+  materials       Material[]
+  sessionStudents SessionStudent[]
 }
 
 model Application {
@@ -139,7 +139,7 @@ model ClassSession {
 }
 
 model SessionStudent {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   sessionId String
   studentId String
   joinedAt  DateTime?
@@ -215,4 +215,14 @@ model Payment {
   @@index([studentId])
   @@index([month])
   @@index([status])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  type      String // PASSWORD_RESET, NEW_STUDENT, etc.
+  title     String
+  message   String
+  username  String?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
 }

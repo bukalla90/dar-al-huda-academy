@@ -7,9 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Video, Plus, Calendar, Clock, X, Loader2, Users, Check } from 'lucide-react';
-import { getTeacherSessions, getTeacherStudents, createClassSession, markAttendance } from '@/lib/action/class.action';
-import { JitsiMeetingComponent } from '@/components/jitsi/jitsi-meeting';
+import { Video, Plus, Calendar, Clock, X, Loader2, Users, Check, ExternalLink, Link2 } from 'lucide-react';
+import { getTeacherSessions, getTeacherStudents, createClassSession } from '@/lib/action/class.action';
 
 interface SessionStudent {
   student: { id: string; fullName: string };
@@ -30,23 +29,18 @@ interface StudentOption {
   courseType: string;
 }
 
-interface ActiveMeeting {
-  roomName: string;
-  userName: string;
-}
-
 export default function TeacherSchedulePage(): React.ReactNode {
   const [showForm, setShowForm] = useState<boolean>(false);
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
   const [date, setDate] = useState<string>('');
   const [time, setTime] = useState<string>('');
+  const [zoomLink, setZoomLink] = useState<string>('');
   const [sessions, setSessions] = useState<SessionType[]>([]);
   const [students, setStudents] = useState<StudentOption[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [pageLoading, setPageLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
   const [success, setSuccess] = useState<string>('');
-  const [activeMeeting, setActiveMeeting] = useState<ActiveMeeting | null>(null);
 
   const loadData = useCallback(async (): Promise<void> => {
     setPageLoading(true);
@@ -88,6 +82,17 @@ export default function TeacherSchedulePage(): React.ReactNode {
       return;
     }
 
+    if (!zoomLink) {
+      setError('Please paste your Zoom meeting link');
+      return;
+    }
+
+    // Basic Zoom link validation
+    if (!zoomLink.includes('zoom.us')) {
+      setError('Please enter a valid Zoom meeting link');
+      return;
+    }
+
     setLoading(true);
     setError('');
 
@@ -95,13 +100,15 @@ export default function TeacherSchedulePage(): React.ReactNode {
       studentIds: selectedStudents,
       date,
       time,
+      meetingUrl: zoomLink,
     });
 
     if (result.success) {
-      setSuccess(`Meeting created for ${selectedStudents.length} student(s)!`);
+      setSuccess(`Session created for ${selectedStudents.length} student(s)!`);
       setSelectedStudents([]);
       setDate('');
       setTime('');
+      setZoomLink('');
       setShowForm(false);
       loadData();
       setTimeout(() => setSuccess(''), 3000);
@@ -110,19 +117,6 @@ export default function TeacherSchedulePage(): React.ReactNode {
     }
 
     setLoading(false);
-  }
-
-  async function joinMeeting(session: SessionType): Promise<void> {
-    // Mark attendance
-    await markAttendance(session.id);
-    
-    const roomName = session.meetingUrl.replace('https://meet.jit.si/', '');
-    setActiveMeeting({ roomName, userName: 'Ustaz' });
-  }
-
-  function closeMeeting(): void {
-    setActiveMeeting(null);
-    loadData(); // Refresh to update statuses
   }
 
   const morningSessions = sessions.filter((s) => new Date(s.scheduledAt).getHours() < 12);
@@ -136,16 +130,6 @@ export default function TeacherSchedulePage(): React.ReactNode {
       MISSED: 'destructive',
     };
     return <Badge variant={variants[status] || 'secondary'}>{status}</Badge>;
-  }
-
-  if (activeMeeting) {
-    return (
-      <JitsiMeetingComponent
-        roomName={activeMeeting.roomName}
-        userName={activeMeeting.userName}
-        onClose={closeMeeting}
-      />
-    );
   }
 
   if (pageLoading) {
@@ -164,7 +148,7 @@ export default function TeacherSchedulePage(): React.ReactNode {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">My Schedule</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Manage class sessions and meetings</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Manage Zoom class sessions</p>
         </div>
         <Button onClick={() => setShowForm(!showForm)} className="bg-primary">
           <Plus className="h-4 w-4 mr-2" />New Session
@@ -179,7 +163,7 @@ export default function TeacherSchedulePage(): React.ReactNode {
         <Card className="border-2 border-primary/20 dark:bg-gray-800 dark:border-gray-700">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="flex items-center gap-2 dark:text-white">
-              <Video className="h-5 w-5 text-primary" />Create New Session
+              <Video className="h-5 w-5 text-primary" />Create Zoom Session
             </CardTitle>
             <Button variant="ghost" size="icon" onClick={() => setShowForm(false)} className="dark:hover:bg-gray-700">
               <X className="h-4 w-4" />
@@ -187,6 +171,24 @@ export default function TeacherSchedulePage(): React.ReactNode {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
+              {/* Zoom Link Input */}
+              <div>
+                <Label className="dark:text-gray-300">
+                  <Link2 className="h-4 w-4 inline mr-1" />
+                  Zoom Meeting Link *
+                </Label>
+                <Input 
+                  type="url"
+                  placeholder="https://us04web.zoom.us/j/123456789?pwd=..."
+                  value={zoomLink}
+                  onChange={(e) => setZoomLink(e.target.value)}
+                  className="dark:bg-gray-700 dark:border-gray-600 dark:text-white mt-1"
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Create a meeting in Zoom, copy the invite link, and paste it here
+                </p>
+              </div>
+
               <div>
                 <Label className="dark:text-gray-300">Select Students ({selectedStudents.length} selected)</Label>
                 <div className="max-h-48 overflow-y-auto space-y-1 mt-2 border dark:border-gray-700 rounded-lg p-2">
@@ -232,7 +234,7 @@ export default function TeacherSchedulePage(): React.ReactNode {
                 </div>
               </div>
 
-              <Button onClick={handleCreateSession} disabled={loading || selectedStudents.length === 0} className="w-full bg-primary">
+              <Button onClick={handleCreateSession} disabled={loading || selectedStudents.length === 0 || !zoomLink} className="w-full bg-primary">
                 {loading ? 'Creating...' : `Create Session for ${selectedStudents.length} student(s)`}
               </Button>
             </div>
@@ -269,19 +271,14 @@ export default function TeacherSchedulePage(): React.ReactNode {
                             {session.sessionStudents.map(s => s.student.fullName).join(', ')}
                           </span>
                         </div>
-                        <div className="flex items-center gap-2 mt-1">
-                          {session.sessionStudents.map((ss) => (
-                            <span key={ss.student.id} className={`text-xs ${ss.joinedAt ? 'text-green-600 dark:text-green-400' : 'text-gray-400'}`}>
-                              {ss.student.fullName}: {ss.joinedAt ? '✓ Joined' : 'Pending'}
-                            </span>
-                          ))}
-                        </div>
                       </div>
                     </div>
-                    {(session.status === 'SCHEDULED' || session.status === 'LIVE') && (
-                      <Button size="sm" className="bg-primary" onClick={() => joinMeeting(session)}>
-                        <Video className="h-4 w-4 mr-1" />Join
-                      </Button>
+                    {session.meetingUrl && (
+                      <a href={session.meetingUrl} target="_blank" rel="noopener noreferrer">
+                        <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
+                          <ExternalLink className="h-4 w-4 mr-1" />Join Zoom
+                        </Button>
+                      </a>
                     )}
                   </div>
                 </div>
@@ -322,19 +319,14 @@ export default function TeacherSchedulePage(): React.ReactNode {
                             {session.sessionStudents.map(s => s.student.fullName).join(', ')}
                           </span>
                         </div>
-                        <div className="flex items-center gap-2 mt-1">
-                          {session.sessionStudents.map((ss) => (
-                            <span key={ss.student.id} className={`text-xs ${ss.joinedAt ? 'text-green-600 dark:text-green-400' : 'text-gray-400'}`}>
-                              {ss.student.fullName}: {ss.joinedAt ? '✓ Joined' : 'Pending'}
-                            </span>
-                          ))}
-                        </div>
                       </div>
                     </div>
-                    {(session.status === 'SCHEDULED' || session.status === 'LIVE') && (
-                      <Button size="sm" className="bg-primary" onClick={() => joinMeeting(session)}>
-                        <Video className="h-4 w-4 mr-1" />Join
-                      </Button>
+                    {session.meetingUrl && (
+                      <a href={session.meetingUrl} target="_blank" rel="noopener noreferrer">
+                        <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
+                          <ExternalLink className="h-4 w-4 mr-1" />Join Zoom
+                        </Button>
+                      </a>
                     )}
                   </div>
                 </div>

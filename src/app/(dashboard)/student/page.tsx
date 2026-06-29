@@ -1,7 +1,7 @@
 // src/app/(dashboard)/student/page.tsx
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -10,10 +10,10 @@ import {
   TrendingUp, Download, FileText, Music, Image,
   User, Phone, Clock, Quote, Settings, Sparkles,
   Heart, Brain, Lightbulb, Target, Shield, Zap,
-  Mic, Users, BookMarked,
+  Mic, Users, BookMarked, ExternalLink, Timer,
+  CheckCircle, 
 } from 'lucide-react';
 import Link from 'next/link';
-import { JitsiMeetingComponent } from '@/components/jitsi/jitsi-meeting';
 
 interface StudentFull {
   id: string;
@@ -22,6 +22,7 @@ interface StudentFull {
   age: number;
   country: string;
   phone: string;
+  scheduleTime: string | null;
   user: { isActive: boolean; username: string };
   teacher: { id: string; fullName: string; phone: string; email: string } | null;
   progress: Array<{
@@ -54,7 +55,6 @@ interface StudentFull {
   }>;
 }
 
-// Course-specific landing content
 const courseLandings: Record<string, {
   title: string;
   subtitle: string;
@@ -158,7 +158,12 @@ export default function StudentDashboardPage(): React.ReactNode {
   const [student, setStudent] = useState<StudentFull | null>(null);
   const [generalMaterials, setGeneralMaterials] = useState<Array<{ id: string; title: string; fileUrl: string; type: string }>>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [activeMeeting, setActiveMeeting] = useState<{ roomName: string; userName: string } | null>(null);
+  const [currentTime, setCurrentTime] = useState<Date>(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 30000);
+    return () => clearInterval(timer);
+  }, []);
 
   const loadData = useCallback(async (): Promise<void> => {
     try {
@@ -179,13 +184,61 @@ export default function StudentDashboardPage(): React.ReactNode {
     loadData();
   }, [loadData]);
 
-  function joinMeeting(meetingUrl: string): void {
-    const roomName = meetingUrl.replace('https://meet.jit.si/', '');
-    setActiveMeeting({ roomName, userName: student?.fullName || 'Student' });
+  const today = useMemo(() => new Date(), []);
+  const todayStr = useMemo(() => today.toDateString(), [today]);
+
+  const todaySessions = useMemo(() => 
+    student?.sessions.filter(s => new Date(s.scheduledAt).toDateString() === todayStr) || [],
+    [student?.sessions, todayStr]
+  );
+
+  const upcomingSessions = useMemo(() => 
+    student?.sessions.filter(s => new Date(s.scheduledAt) > today) || [],
+    [student?.sessions, today]
+  );
+
+  const lastProgress = useMemo(() => student?.progress[0], [student?.progress]);
+  
+  const typeIcon: Record<string, typeof FileText> = { PDF: FileText, AUDIO: Music, IMAGE: Image };
+
+  function getJoinWindow(session: { scheduledAt: string; meetingUrl: string }): {
+    canJoin: boolean;
+    timeUntil: string;
+    isLive: boolean;
+    isCompleted: boolean;
+  } {
+    const sessionTime = new Date(session.scheduledAt);
+    const diffMs = sessionTime.getTime() - currentTime.getTime();
+    const diffMinutes = Math.floor(diffMs / 60000);
+
+    // More than 60 min after scheduled - COMPLETED
+    if (diffMinutes < -60) {
+      return { canJoin: false, timeUntil: 'Completed', isLive: false, isCompleted: true };
+    }
+    
+    // Within 60 min after start - LIVE
+    if (diffMinutes <= 0 && diffMinutes >= -60) {
+      return { canJoin: true, timeUntil: 'Live now! Click Join', isLive: true, isCompleted: false };
+    }
+    
+    // Within 15 min before start - CAN JOIN
+    if (diffMinutes <= 15 && diffMinutes > 0) {
+      return { canJoin: true, timeUntil: `Starting in ${diffMinutes} min`, isLive: false, isCompleted: false };
+    }
+    
+    // More than 15 min away
+    const hours = Math.floor(diffMinutes / 60);
+    const mins = diffMinutes % 60;
+    return { 
+      canJoin: false, 
+      timeUntil: hours > 0 ? `Starts in ${hours}h ${mins}m` : `Starts in ${mins}m`, 
+      isLive: false,
+      isCompleted: false 
+    };
   }
 
-  function closeMeeting(): void {
-    setActiveMeeting(null);
+  function openZoomLink(meetingUrl: string): void {
+    window.open(meetingUrl, '_blank', 'noopener,noreferrer');
   }
 
   if (loading) {
@@ -197,10 +250,6 @@ export default function StudentDashboardPage(): React.ReactNode {
         </div>
       </div>
     );
-  }
-
-  if (activeMeeting) {
-    return <JitsiMeetingComponent roomName={activeMeeting.roomName} userName={activeMeeting.userName} onClose={closeMeeting} />;
   }
 
   if (!student) {
@@ -216,11 +265,6 @@ export default function StudentDashboardPage(): React.ReactNode {
 
   const landing = courseLandings[student.courseType] || defaultLanding;
   const LandingIcon = landing.icon;
-  const today = new Date();
-  const todaySessions = student.sessions.filter(s => new Date(s.scheduledAt).toDateString() === today.toDateString());
-  const upcomingSessions = student.sessions.filter(s => new Date(s.scheduledAt) > today);
-  const lastProgress = student.progress[0];
-  const typeIcon: Record<string, typeof FileText> = { PDF: FileText, AUDIO: Music, IMAGE: Image };
 
   return (
     <div className="space-y-6 pb-20 lg:pb-0">
@@ -242,11 +286,10 @@ export default function StudentDashboardPage(): React.ReactNode {
         </Link>
       </div>
 
-      {/* LANDING PAGE - Benefits, Verses, Hadith */}
+      {/* LANDING PAGE */}
       <div className={`bg-gradient-to-br ${landing.gradient} rounded-3xl p-6 sm:p-10 text-white relative overflow-hidden`}>
         <div className="absolute top-0 right-0 w-80 h-80 bg-white/5 rounded-full -mr-24 -mt-24" />
         <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/5 rounded-full -ml-16 -mb-16" />
-        
         <div className="relative">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center backdrop-blur-sm">
@@ -257,8 +300,6 @@ export default function StudentDashboardPage(): React.ReactNode {
               <p className="text-white/70 text-sm mt-1">{landing.subtitle}</p>
             </div>
           </div>
-
-          {/* Quran Verses */}
           {landing.verses.map((verse, i) => (
             <div key={i} className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 mb-3 border border-white/10">
               <p className="text-xl sm:text-2xl font-arabic text-center mb-2 leading-relaxed">{verse.ar}</p>
@@ -266,8 +307,6 @@ export default function StudentDashboardPage(): React.ReactNode {
               <p className="text-white/50 text-center text-xs mt-1">{verse.reference}</p>
             </div>
           ))}
-
-          {/* Hadith */}
           <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 border border-white/10">
             <div className="flex items-center gap-2 mb-2">
               <Quote className="h-4 w-4 text-accent" />
@@ -316,9 +355,9 @@ export default function StudentDashboardPage(): React.ReactNode {
         </div>
       </div>
 
-      {/* DASHBOARD CARDS - Teacher, Classes, Schedule */}
+      {/* DASHBOARD CARDS */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left - Teacher & Progress */}
+        {/* Left */}
         <div className="space-y-4">
           <Card className="shadow-sm border dark:bg-gray-800 dark:border-gray-700">
             <CardHeader className="pb-2">
@@ -339,6 +378,26 @@ export default function StudentDashboardPage(): React.ReactNode {
                 </div>
               ) : (
                 <p className="text-sm text-gray-500">No teacher assigned yet</p>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-sm border dark:bg-gray-800 dark:border-gray-700">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base flex items-center gap-2 dark:text-white">
+                <Clock className="h-5 w-5 text-accent" /> My Daily Schedule
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {student.scheduleTime ? (
+                <div className="text-center py-3">
+                  <p className="text-3xl font-bold text-primary">{student.scheduleTime}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Everyday</p>
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500 text-center py-4">
+                  Schedule not set yet. Your teacher will assign a time.
+                </p>
               )}
             </CardContent>
           </Card>
@@ -373,64 +432,129 @@ export default function StudentDashboardPage(): React.ReactNode {
           </Card>
         </div>
 
-        {/* Middle - Classes & Schedule */}
+        {/* Middle - Today's Class with Status */}
         <div className="space-y-4">
           <Card className="shadow-sm border dark:bg-gray-800 dark:border-gray-700">
             <CardHeader className="pb-2">
               <CardTitle className="text-base flex items-center gap-2 dark:text-white">
-                <Video className="h-5 w-5 text-blue-600" /> Today&apos;s Classes
+                <Video className="h-5 w-5 text-blue-600" /> Today&apos;s Class
               </CardTitle>
             </CardHeader>
             <CardContent>
               {todaySessions.length > 0 ? (
-                <div className="space-y-2">
-                  {todaySessions.map((session) => (
-                    <div key={session.id} className="flex items-center justify-between p-2.5 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
-                      <div className="flex items-center gap-2">
-                        <Video className="h-4 w-4 text-blue-600" />
-                        <span className="text-sm font-medium dark:text-white">
-                          {new Date(session.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </span>
+                <div className="space-y-3">
+                  {todaySessions.map((session) => {
+                    const { canJoin, timeUntil, isLive, isCompleted } = getJoinWindow(session);
+                    return (
+                      <div key={session.id} className={`p-4 rounded-xl border ${
+                        isCompleted ? 'bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700' :
+                        isLive ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' :
+                        canJoin ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800' :
+                        'bg-gray-50 dark:bg-gray-700/50 border-gray-200 dark:border-gray-700'
+                      }`}>
+                        <div className="text-center mb-3">
+                          <div className="flex items-center justify-center gap-2 mb-1">
+                            {isCompleted ? (
+                              <CheckCircle className="h-4 w-4 text-gray-500" />
+                            ) : isLive ? (
+                              <div className="flex items-center gap-1">
+                                <span className="relative flex h-3 w-3">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                                  <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500" />
+                                </span>
+                                <Timer className="h-4 w-4 text-green-600" />
+                              </div>
+                            ) : (
+                              <Timer className="h-4 w-4 text-primary" />
+                            )}
+                            <span className={`text-lg font-bold ${
+                              isCompleted ? 'text-gray-500 dark:text-gray-400' :
+                              isLive ? 'text-green-600 dark:text-green-400 animate-pulse' : 
+                              canJoin ? 'text-blue-600 dark:text-blue-400' : 
+                              'text-gray-600 dark:text-gray-400'
+                            }`}>
+                              {timeUntil}
+                            </span>
+                          </div>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            Scheduled at {new Date(session.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </p>
+                        </div>
+                        
+                        {isCompleted && (
+                          <Button disabled className="w-full" variant="outline">
+                            <CheckCircle className="h-4 w-4 mr-2" />
+                            Class Completed
+                          </Button>
+                        )}
+                        
+                        {(canJoin || isLive) && !isCompleted && session.meetingUrl && (
+                          <Button 
+                            className={`w-full ${isLive ? 'bg-green-600 hover:bg-green-700 animate-pulse' : 'bg-blue-600 hover:bg-blue-700'}`}
+                            onClick={() => openZoomLink(session.meetingUrl)}
+                          >
+                            <ExternalLink className="h-4 w-4 mr-2" />
+                            {isLive ? 'Join Live Class Now!' : 'Join Zoom Class'}
+                          </Button>
+                        )}
+                        
+                        {!canJoin && !isCompleted && (
+                          <Button disabled className="w-full" variant="outline">
+                            <Clock className="h-4 w-4 mr-2" />
+                            {timeUntil}
+                          </Button>
+                        )}
                       </div>
-                      {session.meetingUrl && (
-                        <Button size="sm" className="bg-blue-600 hover:bg-blue-700 h-8 text-xs" onClick={() => joinMeeting(session.meetingUrl)}>
-                          <Video className="h-3 w-3 mr-1" />Join
-                        </Button>
-                      )}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
-              ) : <p className="text-sm text-gray-500 text-center py-4">No classes today</p>}
+              ) : (
+                <div className="text-center py-4">
+                  <Calendar className="h-10 w-10 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
+                  <p className="text-sm text-gray-500 dark:text-gray-400">No class scheduled for today</p>
+                </div>
+              )}
             </CardContent>
           </Card>
 
           <Card className="shadow-sm border dark:bg-gray-800 dark:border-gray-700">
             <CardHeader className="pb-2">
               <CardTitle className="text-base flex items-center gap-2 dark:text-white">
-                <Calendar className="h-5 w-5 text-accent" /> My Schedule
+                <Calendar className="h-5 w-5 text-accent" /> Upcoming Schedule
               </CardTitle>
             </CardHeader>
             <CardContent>
               {upcomingSessions.length > 0 ? (
                 <div className="space-y-1.5">
                   {upcomingSessions.slice(0, 5).map((session) => (
-                    <div key={session.id} className="flex items-center gap-2 p-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg text-xs">
-                      <Clock className="h-3 w-3 text-accent shrink-0" />
-                      <span className="dark:text-white font-medium">
-                        {new Date(session.scheduledAt).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
-                      </span>
-                      <span className="text-gray-500 dark:text-gray-400">
-                        {new Date(session.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </span>
+                    <div key={session.id} className="flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg text-xs">
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-3 w-3 text-accent shrink-0" />
+                        <div>
+                          <span className="dark:text-white font-medium">
+                            {new Date(session.scheduledAt).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+                          </span>
+                          <span className="text-gray-500 dark:text-gray-400 ml-2">
+                            {new Date(session.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                      </div>
+                      {session.meetingUrl && (
+                        <Button size="sm" variant="ghost" className="text-primary h-7 text-xs" onClick={() => openZoomLink(session.meetingUrl)}>
+                          <ExternalLink className="h-3 w-3 mr-1" />Zoom
+                        </Button>
+                      )}
                     </div>
                   ))}
                 </div>
-              ) : <p className="text-sm text-gray-500 text-center py-4">No upcoming classes</p>}
+              ) : (
+                <p className="text-sm text-gray-500 text-center py-4">No upcoming classes</p>
+              )}
             </CardContent>
           </Card>
         </div>
 
-        {/* Right - Materials & Payments */}
+        {/* Right */}
         <div className="space-y-4">
           <Card className="shadow-sm border dark:bg-gray-800 dark:border-gray-700">
             <CardHeader className="pb-2">

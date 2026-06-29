@@ -3,8 +3,6 @@ import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { Toaster } from '@/components/ui/toaster';
 import { getLoggedInUser } from '@/lib/auth';
-import { BookOpen } from 'lucide-react';
-import Link from 'next/link';
 import { TeacherNav } from '@/components/teacher/teacher-nav';
 
 export const metadata: Metadata = {

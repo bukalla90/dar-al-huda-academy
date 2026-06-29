@@ -103,3 +103,33 @@ export async function getTeachers(): Promise<{
     return { success: false, error: 'Failed to fetch teachers' };
   }
 }
+
+// Add this to src/lib/action/teacher.actions.ts
+
+export async function deleteTeacher(teacherId: string): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  try {
+    // Find teacher to get userId
+    const teacher = await prisma.teacher.findUnique({
+      where: { id: teacherId },
+      select: { userId: true },
+    });
+
+    if (!teacher) {
+      return { success: false, error: 'Teacher not found' };
+    }
+
+    // Delete user (cascades to teacher due to onDelete: Cascade)
+    await prisma.user.delete({
+      where: { id: teacher.userId },
+    });
+
+    revalidatePath('/admin/teachers');
+    return { success: true };
+  } catch (error) {
+    console.error('Delete teacher error:', error);
+    return { success: false, error: 'Failed to delete teacher' };
+  }
+}

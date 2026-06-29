@@ -11,8 +11,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { UserPlus, Users, Mail, Phone, DollarSign } from 'lucide-react';
+import { UserPlus, Users, Mail, Phone, DollarSign, Trash2 } from 'lucide-react';
 import { getTeachers } from '@/lib/action/teacher.actions';
+import { DeleteTeacherButton } from '@/components/admin/delete-teacher-button';
 
 export default async function TeachersPage(): Promise<React.ReactNode> {
   const result = await getTeachers();
@@ -80,6 +81,7 @@ export default async function TeachersPage(): Promise<React.ReactNode> {
                     {teacher.user.isActive ? 'Active' : 'Inactive'}
                   </Badge>
                 </div>
+                <DeleteTeacherButton teacherId={teacher.id} teacherName={teacher.fullName} />
               </div>
               <div className="space-y-2 text-sm text-gray-600 dark:text-gray-300">
                 <div className="flex items-center gap-2"><Mail className="h-4 w-4" />{teacher.email}</div>
@@ -105,6 +107,7 @@ export default async function TeachersPage(): Promise<React.ReactNode> {
                   <TableHead className="dark:text-gray-300">Students</TableHead>
                   <TableHead className="dark:text-gray-300">Salary</TableHead>
                   <TableHead className="dark:text-gray-300">Status</TableHead>
+                  <TableHead className="dark:text-gray-300 w-16">Delete</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -119,6 +122,9 @@ export default async function TeachersPage(): Promise<React.ReactNode> {
                       <Badge variant={teacher.user.isActive ? 'success' : 'secondary'}>
                         {teacher.user.isActive ? 'Active' : 'Inactive'}
                       </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <DeleteTeacherButton teacherId={teacher.id} teacherName={teacher.fullName} />
                     </TableCell>
                   </TableRow>
                 ))}

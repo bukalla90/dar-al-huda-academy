@@ -8,63 +8,80 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import { unstable_cache } from 'next/cache';
+
+// Cache teacher data for 30 seconds
+const getCachedTeacherData = unstable_cache(
+  async (teacherId: string) => {
+    const teacher = await prisma.teacher.findUnique({
+      where: { id: teacherId },
+      include: {
+        students: {
+          include: {
+            user: { select: { isActive: true } },
+          },
+          orderBy: { fullName: 'asc' },
+        },
+        sessions: {
+          where: {
+            scheduledAt: { gte: new Date() },
+            status: 'SCHEDULED',
+          },
+          include: {
+            sessionStudents: {
+              include: {
+                student: { select: { fullName: true } },
+              },
+            },
+          },
+          orderBy: { scheduledAt: 'asc' },
+          take: 10,
+        },
+      },
+    });
+
+    const totalProgress = await prisma.studentProgress.count({
+      where: { teacherId },
+    });
+
+    return { teacher, totalProgress };
+  },
+  ['teacher-dashboard'],
+  { revalidate: 30, tags: ['teacher-dashboard'] }
+);
 
 export default async function TeacherDashboardPage(): Promise<React.ReactNode> {
   const user = await getLoggedInUser();
   
-  if (!user || user.userRole !== 'TEACHER') {
+  if (!user || user.userRole !== 'TEACHER' || !user.teacherId) {
     redirect('/login');
   }
 
-  const teacher = await prisma.teacher.findUnique({
-    where: { id: user.teacherId },
-    include: {
-      students: {
-        include: {
-          user: { select: { isActive: true } },
-        },
-      },
-      sessions: {
-        where: {
-          scheduledAt: { gte: new Date() },
-          status: 'SCHEDULED',
-        },
-        include: {
-          sessionStudents: {
-            include: {
-              student: { select: { fullName: true } },
-            },
-          },
-        },
-        orderBy: { scheduledAt: 'asc' },
-        take: 10,
-      },
-    },
-  });
+  const { teacher, totalProgress } = await getCachedTeacherData(user.teacherId);
 
   if (!teacher) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <p className="text-xl text-gray-500">Teacher profile not found</p>
-          <p className="text-sm text-gray-400 mt-2">Please contact admin</p>
           <Link href="/login" className="text-primary hover:underline mt-4 inline-block">Go to Login</Link>
         </div>
       </div>
     );
   }
 
-  const totalProgress = await prisma.studentProgress.count({
-    where: { teacherId: teacher.id },
-  });
-
   const today = new Date();
-  const todaySessions = teacher.sessions.filter(s => {
-    const sessionDate = new Date(s.scheduledAt);
-    return sessionDate.toDateString() === today.toDateString();
-  });
+  const todayStr = today.toDateString();
+  
+  const todaySessions = teacher.sessions.filter(s => 
+    new Date(s.scheduledAt).toDateString() === todayStr
+  );
 
   const activeStudents = teacher.students.filter(s => s.user.isActive).length;
+
+  // Pre-compute student names for sessions
+  const getStudentNames = (session: typeof teacher.sessions[0]): string => 
+    session.sessionStudents.map(s => s.student.fullName).join(', ');
 
   return (
     <div className="space-y-6 pb-20 lg:pb-0">
@@ -73,97 +90,22 @@ export default async function TeacherDashboardPage(): Promise<React.ReactNode> {
         <p className="text-white/80 mt-1">Welcome back to your dashboard</p>
       </div>
 
+      {/* Stats Grid - Optimized with fewer DOM nodes */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border-l-4 border-l-primary hover:shadow-lg transition-shadow dark:bg-gray-800">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">My Students</p>
-                <p className="text-3xl font-bold text-text dark:text-white">{teacher.students.length}</p>
-              </div>
-              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                <Users className="h-6 w-6 text-primary" />
-              </div>
-            </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">{activeStudents} active</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-accent hover:shadow-lg transition-shadow dark:bg-gray-800">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Today&apos;s Classes</p>
-                <p className="text-3xl font-bold text-text dark:text-white">{todaySessions.length}</p>
-              </div>
-              <div className="w-12 h-12 rounded-full bg-accent/10 flex items-center justify-center">
-                <Calendar className="h-6 w-6 text-accent" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-green-500 hover:shadow-lg transition-shadow dark:bg-gray-800">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Total Progress</p>
-                <p className="text-3xl font-bold text-text dark:text-white">{totalProgress}</p>
-              </div>
-              <div className="w-12 h-12 rounded-full bg-green-50 dark:bg-green-900/30 flex items-center justify-center">
-                <BookOpen className="h-6 w-6 text-green-500" />
-              </div>
-            </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">Records added</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-blue-500 hover:shadow-lg transition-shadow dark:bg-gray-800">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Upcoming</p>
-                <p className="text-3xl font-bold text-text dark:text-white">{teacher.sessions.length}</p>
-              </div>
-              <div className="w-12 h-12 rounded-full bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center">
-                <Clock className="h-6 w-6 text-blue-500" />
-              </div>
-            </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">Scheduled sessions</p>
-          </CardContent>
-        </Card>
+        <QuickStat title="My Students" value={teacher.students.length} icon={Users} color="primary" sub={`${activeStudents} active`} />
+        <QuickStat title="Today's Classes" value={todaySessions.length} icon={Calendar} color="accent" />
+        <QuickStat title="Total Progress" value={totalProgress} icon={BookOpen} color="green" sub="Records added" />
+        <QuickStat title="Upcoming" value={teacher.sessions.length} icon={Clock} color="blue" sub="Scheduled sessions" />
       </div>
 
+      {/* Quick Links */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Link href="/teacher/students">
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer border-0 bg-gradient-to-br from-primary/5 to-primary/10 dark:from-primary/10 dark:to-primary/20">
-            <CardContent className="pt-6 text-center">
-              <Users className="h-8 w-8 text-primary mx-auto mb-2" />
-              <p className="font-semibold dark:text-white">My Students</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400">View and manage</p>
-            </CardContent>
-          </Card>
-        </Link>
-        <Link href="/teacher/schedule">
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer border-0 bg-gradient-to-br from-accent/5 to-accent/10 dark:from-accent/10 dark:to-accent/20">
-            <CardContent className="pt-6 text-center">
-              <Calendar className="h-8 w-8 text-accent mx-auto mb-2" />
-              <p className="font-semibold dark:text-white">Schedule</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Manage classes</p>
-            </CardContent>
-          </Card>
-        </Link>
-        <Link href={teacher.students[0] ? `/teacher/students/${teacher.students[0].id}` : '#'}>
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer border-0 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/30">
-            <CardContent className="pt-6 text-center">
-              <BookOpen className="h-8 w-8 text-green-600 mx-auto mb-2" />
-              <p className="font-semibold dark:text-white">Add Progress</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Update students</p>
-            </CardContent>
-          </Card>
-        </Link>
+        <QuickLink href="/teacher/students" icon={Users} title="My Students" desc="View and manage" color="primary" />
+        <QuickLink href="/teacher/schedule" icon={Calendar} title="Schedule" desc="Manage classes" color="accent" />
+        <QuickLink href={teacher.students[0] ? `/teacher/students/${teacher.students[0].id}` : '#'} icon={BookOpen} title="Add Progress" desc="Update students" color="green" />
       </div>
 
+      {/* Today's Schedule */}
       <Card className="dark:bg-gray-800 dark:border-gray-700">
         <CardHeader className="border-b dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 text-lg dark:text-white">
@@ -180,9 +122,7 @@ export default async function TeacherDashboardPage(): Promise<React.ReactNode> {
                       <Video className="h-5 w-5 text-primary" />
                     </div>
                     <div>
-                      <p className="font-medium dark:text-white">
-                        {session.sessionStudents.map(s => s.student.fullName).join(', ')}
-                      </p>
+                      <p className="font-medium dark:text-white">{getStudentNames(session)}</p>
                       <p className="text-sm text-gray-500 dark:text-gray-400">
                         {new Date(session.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </p>
@@ -193,14 +133,12 @@ export default async function TeacherDashboardPage(): Promise<React.ReactNode> {
               ))}
             </div>
           ) : (
-            <div className="p-8 text-center text-gray-500 dark:text-gray-400">
-              <Calendar className="h-12 w-12 mx-auto mb-3 text-gray-300 dark:text-gray-600" />
-              <p>No classes scheduled for today</p>
-            </div>
+            <EmptyState icon={Calendar} message="No classes scheduled for today" />
           )}
         </CardContent>
       </Card>
 
+      {/* Upcoming Sessions */}
       <Card className="dark:bg-gray-800 dark:border-gray-700">
         <CardHeader className="border-b dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 text-lg dark:text-white">
@@ -215,9 +153,7 @@ export default async function TeacherDashboardPage(): Promise<React.ReactNode> {
                   <div className="flex items-center gap-4">
                     <div className="w-2 h-2 rounded-full bg-accent" />
                     <div>
-                      <p className="font-medium dark:text-white">
-                        {session.sessionStudents.map(s => s.student.fullName).join(', ')}
-                      </p>
+                      <p className="font-medium dark:text-white">{getStudentNames(session)}</p>
                       <p className="text-sm text-gray-500 dark:text-gray-400">
                         {new Date(session.scheduledAt).toLocaleDateString()} at{' '}
                         {new Date(session.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -229,13 +165,79 @@ export default async function TeacherDashboardPage(): Promise<React.ReactNode> {
               ))}
             </div>
           ) : (
-            <div className="p-8 text-center text-gray-500 dark:text-gray-400">
-              <Clock className="h-12 w-12 mx-auto mb-3 text-gray-300 dark:text-gray-600" />
-              <p>No upcoming sessions</p>
-            </div>
+            <EmptyState icon={Clock} message="No upcoming sessions" />
           )}
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+// Reusable sub-components for cleaner code
+function QuickStat({ title, value, icon: Icon, color, sub }: {
+  title: string;
+  value: number;
+  icon: typeof Users;
+  color: string;
+  sub?: string;
+}): React.ReactNode {
+  const colorMap: Record<string, { border: string; bg: string; text: string; darkBg: string }> = {
+    primary: { border: 'border-l-primary', bg: 'bg-primary/10', text: 'text-primary', darkBg: '' },
+    accent: { border: 'border-l-accent', bg: 'bg-accent/10', text: 'text-accent', darkBg: '' },
+    green: { border: 'border-l-green-500', bg: 'bg-green-50', text: 'text-green-500', darkBg: 'dark:bg-green-900/30' },
+    blue: { border: 'border-l-blue-500', bg: 'bg-blue-50', text: 'text-blue-500', darkBg: 'dark:bg-blue-900/30' },
+  };
+  const c = colorMap[color] || colorMap.primary;
+
+  return (
+    <Card className={`border-l-4 ${c.border} hover:shadow-lg transition-shadow dark:bg-gray-800`}>
+      <CardContent className="pt-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{title}</p>
+            <p className="text-3xl font-bold text-text dark:text-white">{value}</p>
+          </div>
+          <div className={`w-12 h-12 rounded-full ${c.bg} ${c.darkBg} flex items-center justify-center`}>
+            <Icon className={`h-6 w-6 ${c.text}`} />
+          </div>
+        </div>
+        {sub && <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">{sub}</p>}
+      </CardContent>
+    </Card>
+  );
+}
+
+function QuickLink({ href, icon: Icon, title, desc, color }: {
+  href: string;
+  icon: typeof Users;
+  title: string;
+  desc: string;
+  color: string;
+}): React.ReactNode {
+  const colorMap: Record<string, string> = {
+    primary: 'from-primary/5 to-primary/10 dark:from-primary/10 dark:to-primary/20',
+    accent: 'from-accent/5 to-accent/10 dark:from-accent/10 dark:to-accent/20',
+    green: 'from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/30',
+  };
+
+  return (
+    <Link href={href}>
+      <Card className={`hover:shadow-lg transition-shadow cursor-pointer border-0 bg-gradient-to-br ${colorMap[color] || colorMap.primary}`}>
+        <CardContent className="pt-6 text-center">
+          <Icon className={`h-8 w-8 text-${color === 'primary' ? 'primary' : color === 'accent' ? 'accent' : 'green-600'} mx-auto mb-2`} />
+          <p className="font-semibold dark:text-white">{title}</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">{desc}</p>
+        </CardContent>
+      </Card>
+    </Link>
+  );
+}
+
+function EmptyState({ icon: Icon, message }: { icon: typeof Calendar; message: string }): React.ReactNode {
+  return (
+    <div className="p-8 text-center text-gray-500 dark:text-gray-400">
+      <Icon className="h-12 w-12 mx-auto mb-3 text-gray-300 dark:text-gray-600" />
+      <p>{message}</p>
     </div>
   );
 }

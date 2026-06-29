@@ -1,5 +1,6 @@
 // src/lib/auth.ts
 import { cookies } from 'next/headers';
+import { prisma } from '@/lib/prisma';
 
 export interface LoggedInUser {
   userId: string;
@@ -18,6 +19,14 @@ export async function getLoggedInUser(): Promise<LoggedInUser | null> {
 
     if (!userId || !userRole) return null;
 
+    // Validate session - check if user still exists and is active
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { isActive: true },
+    });
+
+    if (!user || !user.isActive) return null;
+
     return { userId, userRole, teacherId, studentId };
   } catch {
     return null;
@@ -31,4 +40,11 @@ export function getDashboardUrl(role: string): string {
     case 'STUDENT': return '/student';
     default: return '/login';
   }
+}
+
+// Check if user has access to a specific resource
+export async function hasAccess(allowedRoles: string[]): Promise<boolean> {
+  const user = await getLoggedInUser();
+  if (!user) return false;
+  return allowedRoles.includes(user.userRole);
 }

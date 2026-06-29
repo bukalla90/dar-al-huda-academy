@@ -23,15 +23,10 @@ import {
 import { getStudentsPaginated } from '@/lib/action/student.actions';
 import { getPaymentStatusColor } from '@/lib/utils';
 import { 
-  Search, 
-  Eye,
-  UserPlus,
-  Users,
-  BookOpen,
-  Filter,
-  ChevronLeft,
-  ChevronRight,
+  Search, Eye, UserPlus, Users, BookOpen, Filter,
+  ChevronLeft, ChevronRight, Trash2,
 } from 'lucide-react';
+import { DeleteStudentButton } from '@/components/admin/delete-student-button';
 
 export default async function StudentsPage({
   searchParams,
@@ -63,8 +58,7 @@ export default async function StudentsPage({
         </div>
         <Link href="/admin/students/create">
           <Button className="bg-primary hover:bg-primary/90 w-full sm:w-auto">
-            <UserPlus className="h-4 w-4 mr-2" />
-            Add New Student
+            <UserPlus className="h-4 w-4 mr-2" />Add New Student
           </Button>
         </Link>
       </div>
@@ -109,12 +103,8 @@ export default async function StudentsPage({
         <form className="flex-1 flex flex-col sm:flex-row gap-4">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <Input
-              name="search"
-              placeholder="Search students..."
-              defaultValue={search}
-              className="pl-10 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
-            />
+            <Input name="search" placeholder="Search students..." defaultValue={search}
+              className="pl-10 dark:bg-gray-800 dark:border-gray-700 dark:text-white" />
           </div>
           <Select name="course" defaultValue={course}>
             <SelectTrigger className="w-full sm:w-[180px] dark:bg-gray-800 dark:border-gray-700 dark:text-white">
@@ -143,9 +133,8 @@ export default async function StudentsPage({
               <SelectItem value="inactive">Inactive</SelectItem>
             </SelectContent>
           </Select>
-          <Button type="submit" variant="outline" className="w-full sm:w-auto dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800">
-            <Filter className="h-4 w-4 mr-2" />
-            Filter
+          <Button type="submit" variant="outline" className="w-full sm:w-auto dark:border-gray-700 dark:text-gray-300">
+            <Filter className="h-4 w-4 mr-2" />Filter
           </Button>
         </form>
       </div>
@@ -155,19 +144,21 @@ export default async function StudentsPage({
         {students.map((student) => {
           const lastPayment = student.payments[0];
           return (
-            <Link key={student.id} href={`/admin/students/${student.id}`}>
-              <Card className="mb-3 hover:shadow-md transition-shadow cursor-pointer dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-750">
-                <CardContent className="pt-4">
-                  <div className="flex justify-between items-start mb-3">
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-gray-900 dark:text-white">{student.fullName}</h3>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">{student.country}</p>
-                    </div>
-                    <Badge variant={student.user.isActive ? 'success' : 'secondary'}>
+            <Card key={student.id} className="dark:bg-gray-800 dark:border-gray-700">
+              <CardContent className="pt-4">
+                <div className="flex justify-between items-start mb-3">
+                  <Link href={`/admin/students/${student.id}`} className="flex-1">
+                    <h3 className="font-semibold text-gray-900 dark:text-white">{student.fullName}</h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{student.country}</p>
+                  </Link>
+                  <div className="flex items-center gap-1">
+                    <Badge variant={student.user.isActive ? 'success' : 'secondary'} className="text-xs">
                       {student.user.isActive ? 'Active' : 'Inactive'}
                     </Badge>
+                    <DeleteStudentButton studentId={student.id} studentName={student.fullName} />
                   </div>
-
+                </div>
+                <Link href={`/admin/students/${student.id}`}>
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span className="text-gray-500 dark:text-gray-400">Course:</span>
@@ -186,13 +177,12 @@ export default async function StudentsPage({
                       </div>
                     )}
                   </div>
-
                   <div className="flex justify-end mt-4 pt-3 border-t dark:border-gray-700">
                     <Eye className="h-4 w-4 text-gray-400" />
                   </div>
-                </CardContent>
-              </Card>
-            </Link>
+                </Link>
+              </CardContent>
+            </Card>
           );
         })}
         {students.length === 0 && (
@@ -216,17 +206,18 @@ export default async function StudentsPage({
                   <TableHead className="dark:text-gray-300">Teacher</TableHead>
                   <TableHead className="dark:text-gray-300">Status</TableHead>
                   <TableHead className="dark:text-gray-300">Payment</TableHead>
-                  <TableHead className="text-center dark:text-gray-300">View</TableHead>
+                  <TableHead className="text-center dark:text-gray-300 w-16">View</TableHead>
+                  <TableHead className="text-center dark:text-gray-300 w-16">Delete</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {students.map((student) => (
                   <TableRow key={student.id} className="dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50">
                     <TableCell>
-                      <div>
+                      <Link href={`/admin/students/${student.id}`}>
                         <p className="font-medium text-gray-900 dark:text-white">{student.fullName}</p>
                         <p className="text-sm text-gray-500 dark:text-gray-400">{student.country}</p>
-                      </div>
+                      </Link>
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline" className="dark:border-gray-600 dark:text-gray-300">
@@ -241,9 +232,7 @@ export default async function StudentsPage({
                     </TableCell>
                     <TableCell>
                       {student.payments[0] ? (
-                        <Badge className={getPaymentStatusColor(
-                          student.payments[0].status as 'PAID' | 'UNPAID' | 'PARTIAL' | 'OVERDUE'
-                        )}>
+                        <Badge className={getPaymentStatusColor(student.payments[0].status as 'PAID' | 'UNPAID' | 'PARTIAL' | 'OVERDUE')}>
                           {student.payments[0].status}
                         </Badge>
                       ) : (
@@ -257,6 +246,9 @@ export default async function StudentsPage({
                         </Button>
                       </Link>
                     </TableCell>
+                    <TableCell className="text-center">
+                      <DeleteStudentButton studentId={student.id} studentName={student.fullName} />
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -268,34 +260,20 @@ export default async function StudentsPage({
       {/* Pagination */}
       {data && data.totalPages > 1 && (
         <div className="flex items-center justify-center gap-2">
-          <Link
-            href={`/admin/students?page=${page - 1}${search ? `&search=${search}` : ''}${course ? `&course=${course}` : ''}${status ? `&status=${status}` : ''}`}
-            className={page <= 1 ? 'pointer-events-none opacity-50' : ''}
-          >
+          <Link href={`/admin/students?page=${page - 1}${search ? `&search=${search}` : ''}${course ? `&course=${course}` : ''}${status ? `&status=${status}` : ''}`}
+            className={page <= 1 ? 'pointer-events-none opacity-50' : ''}>
             <Button variant="outline" size="sm" disabled={page <= 1} className="dark:border-gray-700 dark:text-gray-300">
               <ChevronLeft className="h-4 w-4" />
             </Button>
           </Link>
-          
           {Array.from({ length: data.totalPages }, (_, i) => i + 1).map((pageNum) => (
-            <Link
-              key={pageNum}
-              href={`/admin/students?page=${pageNum}${search ? `&search=${search}` : ''}${course ? `&course=${course}` : ''}${status ? `&status=${status}` : ''}`}
-            >
-              <Button
-                variant={pageNum === data.currentPage ? 'default' : 'outline'}
-                size="sm"
-                className={pageNum === data.currentPage ? '' : 'dark:border-gray-700 dark:text-gray-300'}
-              >
-                {pageNum}
-              </Button>
+            <Link key={pageNum} href={`/admin/students?page=${pageNum}${search ? `&search=${search}` : ''}${course ? `&course=${course}` : ''}${status ? `&status=${status}` : ''}`}>
+              <Button variant={pageNum === data.currentPage ? 'default' : 'outline'} size="sm"
+                className={pageNum === data.currentPage ? '' : 'dark:border-gray-700 dark:text-gray-300'}>{pageNum}</Button>
             </Link>
           ))}
-
-          <Link
-            href={`/admin/students?page=${page + 1}${search ? `&search=${search}` : ''}${course ? `&course=${course}` : ''}${status ? `&status=${status}` : ''}`}
-            className={page >= data.totalPages ? 'pointer-events-none opacity-50' : ''}
-          >
+          <Link href={`/admin/students?page=${page + 1}${search ? `&search=${search}` : ''}${course ? `&course=${course}` : ''}${status ? `&status=${status}` : ''}`}
+            className={page >= data.totalPages ? 'pointer-events-none opacity-50' : ''}>
             <Button variant="outline" size="sm" disabled={page >= data.totalPages} className="dark:border-gray-700 dark:text-gray-300">
               <ChevronRight className="h-4 w-4" />
             </Button>

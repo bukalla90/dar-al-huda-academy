@@ -5,8 +5,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { getLoggedInUser } from '@/lib/auth';
 import { BookOpen } from 'lucide-react';
 import Link from 'next/link';
-import { LogoutIconButton } from '@/components/auth/logout-button';
-import { HomeButton } from '@/components/ui/home-button';
+import { LogoutButton } from '@/components/auth/logout-button';
 
 export const metadata: Metadata = {
   title: 'Student Dashboard - Dar Al Huda',
@@ -25,8 +24,8 @@ export default async function StudentLayout({
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-40 bg-white border-b shadow-sm">
+    <div className="min-h-screen bg-background dark:bg-gray-950">
+      <header className="sticky top-0 z-40 bg-white dark:bg-gray-900 border-b dark:border-gray-700 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <Link href="/student" className="flex items-center gap-2">
@@ -37,9 +36,16 @@ export default async function StudentLayout({
             </Link>
             
             <nav className="flex items-center gap-4">
-              <HomeButton />
-              <Link href="/student" className="text-sm font-medium text-gray-600 hover:text-primary">Dashboard</Link>
-              <LogoutIconButton />
+              <Link href="/student" className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-primary">
+                Dashboard
+              </Link>
+              <Link href="/student/settings" className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-primary">
+                Settings
+              </Link>
+              <Link href="/" className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-primary">
+                Home
+              </Link>
+              <LogoutButton />
             </nav>
           </div>
         </div>

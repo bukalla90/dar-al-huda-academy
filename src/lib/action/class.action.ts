@@ -27,11 +27,9 @@ async function getTeacherId(): Promise<string | null> {
   return cookieStore.get('teacherId')?.value || null;
 }
 
-// Auto-update session statuses
 async function autoUpdateSessions(teacherId: string): Promise<void> {
   const now = new Date();
   
-  // Mark passed sessions as MISSED
   await prisma.classSession.updateMany({
     where: {
       teacherId,
@@ -40,24 +38,6 @@ async function autoUpdateSessions(teacherId: string): Promise<void> {
     },
     data: { status: 'MISSED' },
   });
-
-  // Mark sessions with attendance as COMPLETED
-  const missedSessions = await prisma.classSession.findMany({
-    where: { teacherId, status: 'MISSED' },
-    select: { id: true },
-  });
-
-  for (const session of missedSessions) {
-    const hasAttendance = await prisma.sessionStudent.findFirst({
-      where: { sessionId: session.id, joinedAt: { not: null } },
-    });
-    if (hasAttendance) {
-      await prisma.classSession.update({
-        where: { id: session.id },
-        data: { status: 'COMPLETED' },
-      });
-    }
-  }
 }
 
 export async function getTeacherSessions(): Promise<{
@@ -115,6 +95,7 @@ export async function createClassSession(data: {
   studentIds: string[];
   date: string;
   time: string;
+  meetingUrl: string;
 }): Promise<{ success: boolean; error?: string; meetingUrl?: string }> {
   try {
     const teacherId = await getTeacherId();
@@ -128,12 +109,15 @@ export async function createClassSession(data: {
       return { success: false, error: 'Date and time are required' };
     }
 
+    if (!data.meetingUrl || !data.meetingUrl.includes('zoom.us')) {
+      return { success: false, error: 'Please provide a valid Zoom meeting link' };
+    }
+
     const scheduledAt = new Date(`${data.date}T${data.time}:00`);
     if (scheduledAt <= new Date()) {
       return { success: false, error: 'Please select a future date and time' };
     }
 
-    // Verify all students belong to this teacher
     const students = await prisma.student.findMany({
       where: { id: { in: data.studentIds }, teacherId },
       select: { id: true },
@@ -143,14 +127,11 @@ export async function createClassSession(data: {
       return { success: false, error: 'Some students are not assigned to you' };
     }
 
-    const roomName = `dar-al-huda-${Date.now()}-${Math.random().toString(36).substring(7)}`;
-    const meetingUrl = `https://meet.jit.si/${roomName}`;
-
     await prisma.classSession.create({
       data: {
         teacherId,
         scheduledAt,
-        meetingUrl,
+        meetingUrl: data.meetingUrl,
         status: 'SCHEDULED',
         sessionStudents: {
           create: data.studentIds.map((studentId) => ({ studentId })),
@@ -159,35 +140,10 @@ export async function createClassSession(data: {
     });
 
     revalidatePath('/teacher/schedule');
-    return { success: true, meetingUrl };
+    return { success: true, meetingUrl: data.meetingUrl };
   } catch (error) {
     console.error('createClassSession error:', error);
     return { success: false, error: 'Failed to create session' };
-  }
-}
-
-export async function markAttendance(sessionId: string): Promise<{
-  success: boolean;
-  error?: string;
-}> {
-  try {
-    const cookieStore = await cookies();
-    const studentId = cookieStore.get('studentId')?.value;
-    if (!studentId) return { success: false, error: 'Not authenticated' };
-
-    await prisma.sessionStudent.updateMany({
-      where: { sessionId, studentId, joinedAt: null },
-      data: { joinedAt: new Date() },
-    });
-
-    await prisma.classSession.updateMany({
-      where: { id: sessionId, status: 'SCHEDULED' },
-      data: { status: 'LIVE' },
-    });
-
-    return { success: true };
-  } catch (error) {
-    return { success: false, error: 'Failed to mark attendance' };
   }
 }
 

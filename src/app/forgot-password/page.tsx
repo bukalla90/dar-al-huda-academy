@@ -20,10 +20,27 @@ export default function ForgotPasswordPage(): React.ReactNode {
     setLoading(true);
     setError('');
 
+    if (!username || username.length < 3) {
+      setError('Please enter a valid username');
+      setLoading(false);
+      return;
+    }
+
     try {
-      // TODO: In real app, this would notify admin
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      setStep(2);
+      // Call API that checks user exists, gets full name, and creates notification
+      const res = await fetch('/api/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username }),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        setStep(2);
+      } else {
+        setError(data.error || 'Username not found');
+      }
     } catch (err) {
       setError('Failed to process request. Please try again.');
     } finally {
@@ -34,114 +51,97 @@ export default function ForgotPasswordPage(): React.ReactNode {
   return (
     <div className="min-h-screen flex items-center justify-center px-4 bg-gradient-to-br from-primary/5 via-background to-secondary/5">
       <div className="w-full max-w-md">
-        {/* Logo */}
         <div className="text-center mb-8">
           <Link href="/" className="inline-block">
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center mx-auto mb-4 shadow-lg">
               <BookOpen className="h-8 w-8 text-white" />
             </div>
           </Link>
-          <h1 className="text-2xl font-bold text-text">Dar Al Huda</h1>
+          <h1 className="text-2xl font-bold text-text dark:text-white">Dar Al Huda</h1>
         </div>
 
         {step === 1 ? (
-          <Card className="border-0 shadow-2xl">
+          <Card className="border-0 shadow-2xl dark:bg-gray-800 dark:border-gray-700">
             <CardHeader className="space-y-1 text-center pb-2">
-              <CardTitle className="text-2xl font-bold">Forgot Password?</CardTitle>
-              <CardDescription>
-                Enter your username and we&apos;ll help you reset your password
+              <CardTitle className="text-2xl font-bold dark:text-white">Forgot Password?</CardTitle>
+              <CardDescription className="dark:text-gray-400">
+                Enter your username and the admin will be notified to reset it
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-4">
               <form onSubmit={handleRequestReset} className="space-y-5">
                 {error && (
-                  <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl text-sm">
-                    {error}
-                  </div>
+                  <div className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 px-4 py-3 rounded-xl text-sm">{error}</div>
                 )}
 
                 <div className="space-y-2">
-                  <Label htmlFor="username" className="text-sm font-medium">
-                    Username
-                  </Label>
+                  <Label className="text-sm font-medium dark:text-gray-300">Username</Label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                     <Input
-                      id="username"
                       type="text"
                       placeholder="Enter your username"
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
-                      className="pl-10 h-12 rounded-xl border-gray-200 focus:border-primary focus:ring-primary"
+                      className="pl-10 h-12 rounded-xl border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                       required
                     />
                   </div>
                 </div>
 
-                <Button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full h-12 bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-white rounded-xl text-base font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
-                >
+                <Button type="submit" disabled={loading}
+                  className="w-full h-12 bg-gradient-to-r from-primary to-secondary text-white rounded-xl text-base font-semibold shadow-lg">
                   {loading ? (
                     <div className="flex items-center gap-2">
                       <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                       Processing...
                     </div>
-                  ) : (
-                    'Request Password Reset'
-                  )}
+                  ) : 'Request Password Reset'}
                 </Button>
 
-                <Link 
-                  href="/login"
-                  className="flex items-center justify-center gap-2 text-sm text-gray-500 hover:text-primary transition-colors"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                  Back to Login
+                <Link href="/login" className="flex items-center justify-center gap-2 text-sm text-gray-500 hover:text-primary dark:text-gray-400">
+                  <ArrowLeft className="h-4 w-4" />Back to Login
                 </Link>
               </form>
             </CardContent>
           </Card>
         ) : (
-          <Card className="border-0 shadow-2xl">
+          <Card className="border-0 shadow-2xl dark:bg-gray-800 dark:border-gray-700">
             <CardContent className="pt-8 pb-6 text-center">
-              <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
-                <CheckCircle className="h-8 w-8 text-green-600" />
+              <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mx-auto mb-4">
+                <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-400" />
               </div>
-              <h2 className="text-xl font-bold text-text mb-2">Request Submitted!</h2>
-              <p className="text-gray-500 mb-6">
-                Your password reset request has been sent to the admin. 
-                Please contact the admin through one of the following ways to get your new password:
+              <h2 className="text-xl font-bold text-text dark:text-white mb-2">Request Submitted!</h2>
+              <p className="text-gray-500 dark:text-gray-400 mb-6">
+                The admin has been notified. They will reset your password and contact you.
               </p>
 
               <div className="space-y-3 mb-6">
-                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+                <a href="tel:+251914600349" className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700">
                   <Phone className="h-5 w-5 text-primary" />
                   <div className="text-left">
-                    <p className="text-sm font-medium">Call Us</p>
-                    <p className="text-sm text-gray-500">+123 456 7890</p>
+                    <p className="text-sm font-medium dark:text-white">Call Us</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">+251 91 460 0349</p>
                   </div>
-                </div>
-                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-                  <MessageCircle className="h-5 w-5 text-green-600" />
+                </a>
+                <a href="https://t.me/jemil1456" target="_blank" className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700">
+                  <MessageCircle className="h-5 w-5 text-blue-600" />
                   <div className="text-left">
-                    <p className="text-sm font-medium">WhatsApp</p>
-                    <p className="text-sm text-gray-500">+123 456 7890</p>
+                    <p className="text-sm font-medium dark:text-white">Telegram</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">@jemil1456</p>
                   </div>
-                </div>
+                </a>
               </div>
 
-              <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl mb-6">
-                <p className="text-sm text-amber-800">
+              <div className="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl mb-6">
+                <p className="text-sm text-amber-800 dark:text-amber-300">
                   After receiving your new password, please change it from your dashboard settings.
                 </p>
               </div>
 
               <Link href="/login">
                 <Button className="w-full h-12 bg-gradient-to-r from-primary to-secondary text-white rounded-xl">
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Back to Login
+                  <ArrowLeft className="h-4 w-4 mr-2" />Back to Login
                 </Button>
               </Link>
             </CardContent>
@@ -149,12 +149,8 @@ export default function ForgotPasswordPage(): React.ReactNode {
         )}
 
         <div className="text-center mt-6">
-          <Link 
-            href="/" 
-            className="text-sm text-gray-500 hover:text-primary transition-colors inline-flex items-center gap-1"
-          >
-            <Globe className="h-4 w-4" />
-            Back to Home
+          <Link href="/" className="text-sm text-gray-500 hover:text-primary dark:text-gray-400 inline-flex items-center gap-1">
+            <Globe className="h-4 w-4" />Back to Home
           </Link>
         </div>
       </div>

@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -13,7 +14,6 @@ import {
   Save, Lock, Key, Search, CheckCircle, Copy, Loader2, Eye, EyeOff 
 } from 'lucide-react';
 
-// Schema for admin's own password change
 const changePasswordSchema = z.object({
   currentPassword: z.string().min(1, 'Current password is required'),
   newPassword: z.string().min(6, 'Password must be at least 6 characters'),
@@ -26,18 +26,21 @@ const changePasswordSchema = z.object({
 type ChangePasswordForm = z.infer<typeof changePasswordSchema>;
 
 export default function AdminSettingsPage(): React.ReactNode {
+  const searchParams = useSearchParams();
+  const prefilledUsername = searchParams.get('reset') || '';
+
   const [loading, setLoading] = useState<boolean>(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showCurrent, setShowCurrent] = useState<boolean>(false);
   const [showNew, setShowNew] = useState<boolean>(false);
   const [showConfirm, setShowConfirm] = useState<boolean>(false);
 
-  // Reset user password states
-  const [resetUsername, setResetUsername] = useState<string>('');
+  const [resetUsername, setResetUsername] = useState<string>(prefilledUsername);
   const [newPassword, setNewPassword] = useState<string>('');
   const [resetLoading, setResetLoading] = useState<boolean>(false);
   const [resetMessage, setResetMessage] = useState<string>('');
   const [copied, setCopied] = useState<boolean>(false);
+  const [resetSuccess, setResetSuccess] = useState<boolean>(false);
 
   const {
     register,
@@ -48,7 +51,6 @@ export default function AdminSettingsPage(): React.ReactNode {
     resolver: zodResolver(changePasswordSchema),
   });
 
-  // Change admin's own password
   async function onChangePassword(data: ChangePasswordForm): Promise<void> {
     setLoading(true);
     setMessage(null);
@@ -78,12 +80,12 @@ export default function AdminSettingsPage(): React.ReactNode {
     }
   }
 
-  // Reset a user's password (admin function)
   async function handleResetPassword(): Promise<void> {
     if (!resetUsername || !newPassword) return;
 
     setResetLoading(true);
     setResetMessage('');
+    setResetSuccess(false);
 
     try {
       const res = await fetch('/api/admin/reset-user-password', {
@@ -95,10 +97,9 @@ export default function AdminSettingsPage(): React.ReactNode {
       const result = await res.json();
 
       if (result.success) {
-        setResetMessage(`Password for "${resetUsername}" has been reset successfully!`);
-        setCopied(false);
+        setResetSuccess(true);
       } else {
-        setResetMessage(`Error: ${result.error || 'Failed to reset password'}`);
+        setResetMessage(result.error || 'Failed to reset password');
       }
     } catch {
       setResetMessage('Error: Something went wrong');
@@ -220,7 +221,11 @@ export default function AdminSettingsPage(): React.ReactNode {
                 <Input 
                   placeholder="Enter student or teacher username"
                   value={resetUsername}
-                  onChange={(e) => setResetUsername(e.target.value)}
+                  onChange={(e) => {
+                    setResetUsername(e.target.value);
+                    setResetSuccess(false);
+                    setResetMessage('');
+                  }}
                   className="pl-10 rounded-xl dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 />
               </div>
@@ -233,12 +238,20 @@ export default function AdminSettingsPage(): React.ReactNode {
                   type="text"
                   placeholder="Enter new password"
                   value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
+                  onChange={(e) => {
+                    setNewPassword(e.target.value);
+                    setResetSuccess(false);
+                    setResetMessage('');
+                  }}
                   className="rounded-xl flex-1 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 />
                 <Button 
                   variant="outline"
-                  onClick={() => setNewPassword(Math.random().toString(36).slice(-8))}
+                  onClick={() => {
+                    setNewPassword(Math.random().toString(36).slice(-8));
+                    setResetSuccess(false);
+                    setResetMessage('');
+                  }}
                   className="rounded-xl dark:border-gray-600 dark:text-gray-300"
                 >
                   Generate
@@ -256,34 +269,34 @@ export default function AdminSettingsPage(): React.ReactNode {
             </Button>
 
             {resetMessage && (
-              <div className={`rounded-xl p-4 ${
-                resetMessage.startsWith('Error') 
-                  ? 'bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800' 
-                  : 'bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800'
-              }`}>
+              <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-xl p-4">
                 <div className="flex items-start gap-3">
-                  <CheckCircle className={`h-5 w-5 mt-0.5 ${resetMessage.startsWith('Error') ? 'text-red-600' : 'text-green-600'}`} />
+                  <CheckCircle className="h-5 w-5 mt-0.5 text-red-600" />
+                  <p className="text-sm text-red-800 dark:text-red-300">{resetMessage}</p>
+                </div>
+              </div>
+            )}
+
+            {resetSuccess && (
+              <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-xl p-4">
+                <div className="flex items-start gap-3">
+                  <CheckCircle className="h-5 w-5 mt-0.5 text-green-600 dark:text-green-400" />
                   <div className="flex-1">
-                    <p className={`text-sm font-medium mb-1 ${resetMessage.startsWith('Error') ? 'text-red-800 dark:text-red-300' : 'text-green-800 dark:text-green-300'}`}>
-                      {resetMessage.startsWith('Error') ? 'Reset Failed' : 'Password Reset Successful!'}
+                    <p className="text-sm font-medium text-green-800 dark:text-green-300 mb-2">
+                      Password Reset Successful!
                     </p>
-                    {!resetMessage.startsWith('Error') && (
-                      <>
-                        <p className="text-sm text-green-700 dark:text-green-400">
-                          New password: <strong className="text-lg">{newPassword}</strong>
-                        </p>
-                        <p className="text-xs text-green-600 dark:text-green-500 mt-2">
-                          Share this password with {resetUsername} via phone or WhatsApp. They should change it after logging in.
-                        </p>
-                      </>
-                    )}
+                    <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-green-200 dark:border-green-700">
+                      <p className="text-xs text-gray-500 mb-1">New password for <strong>{resetUsername}</strong>:</p>
+                      <p className="text-lg font-mono font-bold text-primary select-all">{newPassword}</p>
+                    </div>
+                    <p className="text-xs text-green-600 dark:text-green-500 mt-3">
+                      Share this password with the user via phone or WhatsApp. They should change it after logging in.
+                    </p>
                   </div>
-                  {!resetMessage.startsWith('Error') && (
-                    <Button variant="outline" size="sm" onClick={copyToClipboard}
-                      className="shrink-0 border-green-300 dark:border-green-700 text-green-700 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/50">
-                      {copied ? <CheckCircle className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                    </Button>
-                  )}
+                  <Button variant="outline" size="sm" onClick={copyToClipboard}
+                    className="shrink-0 border-green-300 dark:border-green-700 text-green-700 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/50">
+                    {copied ? <CheckCircle className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                  </Button>
                 </div>
               </div>
             )}
