@@ -1,6 +1,7 @@
 // src/components/admin/admin-sidebar.tsx
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -14,79 +15,87 @@ import {
   Settings,
   UserPlus,
   BookMarked,
+  Bell,
 } from 'lucide-react';
 
 interface NavItem {
   title: string;
   href: string;
   icon: typeof LayoutDashboard;
+  badge?: boolean;
   children?: NavItem[];
 }
 
-const adminNavItems: NavItem[] = [
-  {
-    title: 'Dashboard',
-    href: '/admin',
-    icon: LayoutDashboard,
-  },
-  {
-    title: 'Students',
-    href: '/admin/students',
-    icon: Users,
-    children: [
-      {
-        title: 'All Students',
-        href: '/admin/students',
-        icon: Users,
-      },
-      {
-        title: 'Add Student',
-        href: '/admin/students/create',
-        icon: UserPlus,
-      },
-    ],
-  },
-  {
-    title: 'Teachers',
-    href: '/admin/teachers',
-    icon: GraduationCap,
-    children: [
-      {
-        title: 'All Teachers',
-        href: '/admin/teachers',
-        icon: GraduationCap,
-      },
-      {
-        title: 'Add Teacher',
-        href: '/admin/teachers/create',
-        icon: UserPlus,
-      },
-    ],
-  },
-  {
-    title: 'Payments',
-    href: '/admin/payments',
-    icon: CreditCard,
-  },
-  {
-    title: 'Classes',
-    href: '/admin/classes',
-    icon: Calendar,
-  },
-  {
-    title: 'Materials',
-    href: '/admin/materials',
-    icon: BookOpen,
-  },
-  {
-    title: 'Settings',
-    href: '/admin/settings',
-    icon: Settings,
-  },
-];
-
 export function AdminSidebar(): React.ReactNode {
   const pathname = usePathname();
+  const [unreadCount, setUnreadCount] = useState<number>(0);
+
+  useEffect(() => {
+    async function fetchCount(): Promise<void> {
+      try {
+        const res = await fetch('/api/notifications/count');
+        const data = await res.json();
+        if (data.success) {
+          setUnreadCount(data.count);
+        }
+      } catch {}
+    }
+    fetchCount();
+    const interval = setInterval(fetchCount, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const adminNavItems: NavItem[] = [
+    {
+      title: 'Dashboard',
+      href: '/admin',
+      icon: LayoutDashboard,
+    },
+    {
+      title: 'Notifications',
+      href: '/admin/notifications',
+      icon: Bell,
+      badge: true,
+    },
+    {
+      title: 'Students',
+      href: '/admin/students',
+      icon: Users,
+      children: [
+        { title: 'All Students', href: '/admin/students', icon: Users },
+        { title: 'Add Student', href: '/admin/students/create', icon: UserPlus },
+      ],
+    },
+    {
+      title: 'Teachers',
+      href: '/admin/teachers',
+      icon: GraduationCap,
+      children: [
+        { title: 'All Teachers', href: '/admin/teachers', icon: GraduationCap },
+        { title: 'Add Teacher', href: '/admin/teachers/create', icon: UserPlus },
+      ],
+    },
+    {
+      title: 'Payments',
+      href: '/admin/payments',
+      icon: CreditCard,
+    },
+    {
+      title: 'Classes',
+      href: '/admin/classes',
+      icon: Calendar,
+    },
+    {
+      title: 'Materials',
+      href: '/admin/materials',
+      icon: BookOpen,
+    },
+    {
+      title: 'Settings',
+      href: '/admin/settings',
+      icon: Settings,
+    },
+  ];
 
   return (
     <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-primary dark:bg-gray-900 px-6 pb-4 border-r dark:border-gray-800">
@@ -118,14 +127,19 @@ export function AdminSidebar(): React.ReactNode {
                     <Link
                       href={item.href}
                       className={cn(
-                        'group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold transition-all duration-200',
+                        'group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold transition-all duration-200 relative',
                         isActive || isParentActive
                           ? 'bg-white/10 text-white dark:bg-gray-800 dark:text-white'
                           : 'text-white/70 hover:text-white hover:bg-white/10 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-800'
                       )}
                     >
                       <item.icon className="h-6 w-6 shrink-0" />
-                      {item.title}
+                      <span className="flex-1">{item.title}</span>
+                      {item.badge && unreadCount > 0 && (
+                        <span className="bg-red-500 text-white text-xs rounded-full min-w-[20px] h-5 flex items-center justify-center font-bold px-1.5">
+                          {unreadCount > 99 ? '99+' : unreadCount}
+                        </span>
+                      )}
                     </Link>
 
                     {/* Submenu */}
