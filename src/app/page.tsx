@@ -516,7 +516,7 @@ export default function HomePage(): React.ReactNode {
                   <Phone className="h-4 w-4" /> +251 91 460 0349
                 </li>
                 <li className="flex items-center gap-2">
-                  <Phone className="h-4 w-4" /> 0921757379
+                  <Phone className="h-4 w-4" /> +251921757379
                 </li>
                 <li className="flex items-center gap-2">
                   <Mail className="h-4 w-4" /> mohammedjemal433@gmail.com
