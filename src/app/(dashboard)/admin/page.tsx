@@ -1,188 +1,209 @@
-// src/lib/action/admin.actions.ts
-'use server';
+// src/app/(dashboard)/admin/page.tsx
+import { Suspense } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { 
+  Users, GraduationCap, CreditCard, Calendar, ClipboardList, 
+  BookOpen, Activity, UserCheck, UserX, TrendingUp, TrendingDown, DollarSign,
+} from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { formatDate } from '@/lib/utils';
+import { getChartData, getDashboardStats, getRecentActivity } from '@/lib/action/admin.actions';
+import { IncomeBarChart } from '@/components/charts/income-bar-chart';
 
-import { prisma } from '@/lib/prisma';
-import { unstable_cache } from 'next/cache';
-import type { Payment } from '@/generated/prisma/client';
-
-interface DashboardStats {
-  totalStudents: number;
-  totalTeachers: number;
-  activeStudents: number;
-  paidStudents: number;
-  unpaidStudents: number;
-  upcomingClasses: number;
-  pendingApplications: number;
-  monthlyIncome: number;
-  teacherSalaries: number;
-  netIncome: number;
-  totalCourses: number;
+function DashboardSkeleton(): React.ReactNode {
+  return (
+    <div className="animate-pulse">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <div key={i} className="bg-gray-100 dark:bg-gray-800 rounded-xl h-28" />
+        ))}
+      </div>
+    </div>
+  );
 }
 
-interface RecentActivity {
-  id: string;
-  type: 'STUDENT' | 'TEACHER' | 'PAYMENT' | 'APPLICATION';
+interface StatCardProps {
   title: string;
-  description: string;
-  timestamp: Date;
-  status: string;
+  value: string;
+  icon: typeof Users;
+  gradient: string;
+  iconBg: string;
+  iconColor: string;
 }
 
-interface ChartData {
-  label: string;
-  value: number;
-  color: string;
+function StatCard({ title, value, icon: Icon, gradient, iconBg, iconColor }: StatCardProps): React.ReactNode {
+  return (
+    <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 dark:bg-gray-800">
+      <div className={`absolute top-0 left-0 right-0 h-1 ${gradient}`} />
+      <CardContent className="pt-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{title}</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{value}</p>
+          </div>
+          <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${iconBg}`}>
+            <Icon className={`h-6 w-6 ${iconColor}`} />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
 }
 
-// Helper function for stats
-async function fetchDashboardStats(): Promise<{ success: boolean; stats?: DashboardStats; error?: string }> {
-  try {
-    const currentMonth = new Date().toISOString().slice(0, 7);
+export default async function AdminDashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ year?: string }>;
+}): Promise<React.ReactNode> {
+  const params = await searchParams;
+  const selectedYear = params.year || new Date().getFullYear().toString();
+  
+  const [statsResult, activityResult, chartResult] = await Promise.all([
+    getDashboardStats(),
+    getRecentActivity(),
+    getChartData(selectedYear),
+  ]);
 
-    const [
-      totalStudents,
-      totalTeachers,
-      activeStudents,
-      paidStudents,
-      unpaidStudents,
-      upcomingClasses,
-      pendingApplications,
-      paymentsThisMonth,
-      teachers,
-    ] = await Promise.all([
-      prisma.student.count(),
-      prisma.teacher.count(),
-      prisma.student.count({ where: { user: { isActive: true } } }),
-      prisma.payment.count({ where: { status: 'PAID', month: currentMonth } }),
-      prisma.payment.count({ where: { status: 'UNPAID', month: currentMonth } }),
-      prisma.classSession.count({ where: { scheduledAt: { gte: new Date() }, status: 'SCHEDULED' } }),
-      prisma.application.count({ where: { status: 'PENDING' } }),
-      prisma.payment.findMany({ where: { status: 'PAID', month: currentMonth }, select: { amount: true } }),
-      prisma.teacher.findMany({ select: { salary: true } }),
-    ]);
+  const stats = statsResult.success ? statsResult.stats : null;
+  const activities = activityResult.success && activityResult.activities ? activityResult.activities : [];
+  const chartData = chartResult.success ? chartResult.chartData : null;
+  const currentYear = new Date().getFullYear();
 
-    const monthlyIncome = paymentsThisMonth.reduce((sum: number, p: Pick<Payment, 'amount'>) => sum + p.amount, 0);
-    const teacherSalaries = teachers.reduce((sum: number, t: { salary: number | null }) => sum + (t.salary || 0), 0);
-    const netIncome = monthlyIncome - teacherSalaries;
+  const monthlyIncomeData = chartData?.monthlyIncome?.map(item => ({
+    month: item.label,
+    income: item.value,
+    color: item.color,
+  })) || [];
 
-    const stats: DashboardStats = {
-      totalStudents,
-      totalTeachers,
-      activeStudents,
-      paidStudents,
-      unpaidStudents,
-      upcomingClasses,
-      pendingApplications,
-      monthlyIncome,
-      teacherSalaries,
-      netIncome,
-      totalCourses: 9,
-    };
+  return (
+    <div className="space-y-6 pb-20 lg:pb-0">
+      {/* Page Header */}
+      <div className="bg-gradient-to-r from-primary/10 to-secondary/10 dark:from-primary/20 dark:to-secondary/20 rounded-2xl p-6 border border-primary/10 dark:border-primary/20">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard Overview</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Dar Al Huda Academy</p>
+          </div>
+          <Badge className="bg-primary text-white border-0 px-4 py-1.5">
+            <Activity className="h-3.5 w-3.5 mr-1.5" />Live
+          </Badge>
+        </div>
+      </div>
 
-    return { success: true, stats };
-  } catch (error) {
-    return { success: false, error: 'Failed to fetch dashboard stats' };
-  }
+      {/* Stats Grid */}
+      <Suspense fallback={<DashboardSkeleton />}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCard title="Total Students" value={String(stats?.totalStudents ?? 0)} icon={Users} gradient="bg-blue-500" iconBg="bg-blue-50 dark:bg-blue-900/40" iconColor="text-blue-600 dark:text-blue-400" />
+          <StatCard title="Active Students" value={String(stats?.activeStudents ?? 0)} icon={UserCheck} gradient="bg-emerald-500" iconBg="bg-emerald-50 dark:bg-emerald-900/40" iconColor="text-emerald-600 dark:text-emerald-400" />
+          <StatCard title="Total Ustazs" value={String(stats?.totalTeachers ?? 0)} icon={GraduationCap} gradient="bg-violet-500" iconBg="bg-violet-50 dark:bg-violet-900/40" iconColor="text-violet-600 dark:text-violet-400" />
+          <StatCard title="Upcoming Classes" value={String(stats?.upcomingClasses ?? 0)} icon={Calendar} gradient="bg-cyan-500" iconBg="bg-cyan-50 dark:bg-cyan-900/40" iconColor="text-cyan-600 dark:text-cyan-400" />
+          <StatCard title="Monthly Income" value={`ETB ${(stats?.monthlyIncome ?? 0).toLocaleString()}`} icon={TrendingUp} gradient="bg-green-500" iconBg="bg-green-50 dark:bg-green-900/40" iconColor="text-green-600 dark:text-green-400" />
+          <StatCard title="Ustaz Salaries" value={`ETB ${(stats?.teacherSalaries ?? 0).toLocaleString()}`} icon={TrendingDown} gradient="bg-orange-500" iconBg="bg-orange-50 dark:bg-orange-900/40" iconColor="text-orange-600 dark:text-orange-400" />
+          <StatCard title="Net Income" value={`ETB ${(stats?.netIncome ?? 0).toLocaleString()}`} icon={DollarSign} gradient={(stats?.netIncome ?? 0) >= 0 ? 'bg-teal-500' : 'bg-red-500'} iconBg={(stats?.netIncome ?? 0) >= 0 ? 'bg-teal-50 dark:bg-teal-900/40' : 'bg-red-50 dark:bg-red-900/40'} iconColor={(stats?.netIncome ?? 0) >= 0 ? 'text-teal-600 dark:text-teal-400' : 'text-red-600 dark:text-red-400'} />
+          <StatCard title="Paid Students" value={String(stats?.paidStudents ?? 0)} icon={CreditCard} gradient="bg-green-500" iconBg="bg-green-50 dark:bg-green-900/40" iconColor="text-green-600 dark:text-green-400" />
+        </div>
+      </Suspense>
+
+      {/* Income Bar Chart */}
+      <Card className="shadow-lg border-0 dark:bg-gray-800">
+        <CardHeader className="border-b dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-primary" />
+              Monthly Income - {selectedYear}
+            </CardTitle>
+            <form className="flex items-center gap-2">
+              <select name="year" defaultValue={selectedYear} className="text-sm border rounded-lg px-3 py-1.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                {Array.from({ length: 5 }, (_, i) => currentYear - 2 + i).map((year) => (
+                  <option key={year} value={String(year)}>{year}</option>
+                ))}
+              </select>
+              <button type="submit" className="text-sm text-primary hover:underline font-medium">Go</button>
+            </form>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-6">
+          <IncomeBarChart data={monthlyIncomeData} />
+          <div className="mt-4 text-center text-sm text-gray-500 dark:text-gray-400">
+            Total: <span className="font-bold text-gray-900 dark:text-white">ETB {monthlyIncomeData.reduce((sum, i) => sum + i.income, 0).toLocaleString()}</span>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Activity & Sidebar */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <Card className="shadow-lg border-0 dark:bg-gray-800">
+            <CardHeader className="border-b dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800">
+              <CardTitle className="text-lg font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+                <Activity className="h-5 w-5 text-primary" />Recent Activity
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="divide-y dark:divide-gray-700 max-h-[400px] overflow-y-auto">
+                {activities.length > 0 ? (
+                  activities.map((activity) => (
+                    <div key={`${activity.type}-${activity.id}`} className="flex items-start gap-3 p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">{activity.title}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{activity.description}</p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{formatDate(activity.timestamp)}</p>
+                      </div>
+                      <Badge variant="outline" className="text-xs dark:border-gray-600 dark:text-gray-300">{activity.status}</Badge>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-12 text-gray-500 dark:text-gray-400">No recent activity</div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="space-y-4">
+          <Card className="shadow-lg border-0 dark:bg-gray-800">
+            <CardHeader className="border-b dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800">
+              <CardTitle className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <BookOpen className="h-5 w-5 text-primary" />Courses
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4">
+              <div className="space-y-3">
+                {chartData?.courseEnrollment.map((item) => (
+                  <div key={item.label} className="space-y-1.5">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600 dark:text-gray-300">{item.label}</span>
+                      <span className="font-medium text-gray-900 dark:text-white">{item.value}</span>
+                    </div>
+                    <div className="h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                      <div className="h-full rounded-full" style={{ width: `${(item.value / (stats?.totalStudents || 1)) * 100}%`, backgroundColor: item.color }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-lg border-0 dark:bg-gray-800">
+            <CardHeader className="border-b dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800">
+              <CardTitle className="text-lg font-semibold text-gray-900 dark:text-white">Payment</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4">
+              <div className="space-y-2">
+                {chartData?.paymentOverview.map((item) => (
+                  <div key={item.label} className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+                      <span className="text-sm text-gray-600 dark:text-gray-300">{item.label}</span>
+                    </div>
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">{item.value}</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
 }
-
-// Cached version
-export const getDashboardStats = unstable_cache(
-  fetchDashboardStats,
-  ['admin-dashboard-stats'],
-  { revalidate: 60, tags: ['admin-stats'] }
-);
-
-// Helper function for recent activity
-async function fetchRecentActivity(): Promise<{ success: boolean; activities?: RecentActivity[]; error?: string }> {
-  try {
-    const [recentStudents, recentTeachers, recentPayments, recentApplications] = await Promise.all([
-      prisma.student.findMany({ take: 5, orderBy: { createdAt: 'desc' }, select: { id: true, fullName: true, createdAt: true } }),
-      prisma.teacher.findMany({ take: 5, orderBy: { createdAt: 'desc' }, select: { id: true, fullName: true, createdAt: true } }),
-      prisma.payment.findMany({ take: 5, orderBy: { createdAt: 'desc' }, select: { id: true, amount: true, status: true, createdAt: true, student: { select: { fullName: true } } } }),
-      prisma.application.findMany({ take: 5, orderBy: { createdAt: 'desc' }, select: { id: true, fullName: true, status: true, createdAt: true } }),
-    ]);
-
-    const activities: RecentActivity[] = [
-      ...recentStudents.map((s: { id: string; fullName: string; createdAt: Date }) => ({
-        id: s.id, type: 'STUDENT' as const, title: 'New Student Registered',
-        description: `${s.fullName} joined the academy`, timestamp: s.createdAt, status: 'Active',
-      })),
-      ...recentTeachers.map((t: { id: string; fullName: string; createdAt: Date }) => ({
-        id: t.id, type: 'TEACHER' as const, title: 'New Teacher Added',
-        description: `${t.fullName} joined as teacher`, timestamp: t.createdAt, status: 'Active',
-      })),
-      ...recentPayments.map((p: { id: string; amount: number; status: string; createdAt: Date; student: { fullName: string } }) => ({
-        id: p.id, type: 'PAYMENT' as const, title: 'Payment Update',
-        description: `${p.student.fullName} - ETB ${p.amount} - ${p.status}`, timestamp: p.createdAt, status: p.status,
-      })),
-      ...recentApplications.map((a: { id: string; fullName: string; status: string; createdAt: Date }) => ({
-        id: a.id, type: 'APPLICATION' as const, title: 'New Application',
-        description: `${a.fullName} applied for courses`, timestamp: a.createdAt, status: a.status,
-      })),
-    ].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()).slice(0, 10);
-
-    return { success: true, activities };
-  } catch (error) {
-    return { success: false, error: 'Failed to fetch recent activity' };
-  }
-}
-
-// Cached version
-export const getRecentActivity = unstable_cache(
-  fetchRecentActivity,
-  ['admin-recent-activity'],
-  { revalidate: 30, tags: ['admin-activity'] }
-);
-
-// Helper function for chart data
-async function fetchChartData(year?: string): Promise<{ success: boolean; chartData?: { courseEnrollment: ChartData[]; paymentOverview: ChartData[]; monthlyIncome: ChartData[] }; error?: string }> {
-  try {
-    const selectedYear = year || new Date().getFullYear().toString();
-
-    const [studentsByCourse, paymentsByStatus] = await Promise.all([
-      prisma.student.groupBy({ by: ['courseType'], _count: { id: true } }),
-      prisma.payment.groupBy({ by: ['status'], _count: { id: true }, where: { month: new Date().toISOString().slice(0, 7) } }),
-    ]);
-
-    const courseColors: Record<string, string> = {
-      HIFZ: '#0F766E', TAJWEED: '#10B981', NAZIRAH: '#14B8A6', MURAJAAH: '#0D9488',
-      AQIDAH: '#F59E0B', FIQH: '#F97316', HADITH: '#EF4444', ARABIC_LANGUAGE: '#8B5CF6', ISLAMIC_MANNERS: '#EC4899',
-    };
-
-    const courseEnrollment: ChartData[] = studentsByCourse.map((item) => ({
-      label: item.courseType.replace(/_/g, ' '),
-      value: item._count.id,
-      color: courseColors[item.courseType] || '#6B7280',
-    }));
-
-    const paymentColors: Record<string, string> = { PAID: '#10B981', UNPAID: '#6B7280', PARTIAL: '#F59E0B', OVERDUE: '#EF4444' };
-    const paymentOverview: ChartData[] = paymentsByStatus.map((item) => ({
-      label: item.status, value: item._count.id, color: paymentColors[item.status] || '#6B7280',
-    }));
-
-    // Monthly income for selected year
-    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const monthlyIncomePromises = Array.from({ length: 12 }, (_, i) => {
-      const month = `${selectedYear}-${String(i + 1).padStart(2, '0')}`;
-      return prisma.payment.findMany({ where: { month, status: 'PAID' }, select: { amount: true } });
-    });
-
-    const monthlyResults = await Promise.all(monthlyIncomePromises);
-    const monthlyIncome: ChartData[] = monthlyResults.map((payments, i) => ({
-      label: monthNames[i],
-      value: payments.reduce((sum, p) => sum + p.amount, 0),
-      color: '#0F766E',
-    }));
-
-    return { success: true, chartData: { courseEnrollment, paymentOverview, monthlyIncome } };
-  } catch (error) {
-    return { success: false, error: 'Failed to fetch chart data' };
-  }
-}
-
-// Cached version
-export const getChartData = unstable_cache(
-  fetchChartData,
-  ['admin-chart-data'],
-  { revalidate: 60, tags: ['admin-charts'] }
-);
