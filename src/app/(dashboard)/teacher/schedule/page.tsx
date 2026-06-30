@@ -96,7 +96,7 @@ export default function TeacherSchedulePage(): React.ReactNode {
 
   function openEditForm(session: SessionType): void {
     setEditingSession(session);
-    setSelectedStudents(session.sessionStudents.map(s => s.student.id));
+    setSelectedStudents(session.sessionStudents.map(ss => ss.student.id));
     const sessionDate = new Date(session.scheduledAt);
     setDate(sessionDate.toISOString().split('T')[0]);
     setTime(
@@ -115,7 +115,7 @@ export default function TeacherSchedulePage(): React.ReactNode {
     setShowForm(false);
   }
 
-  async function handleCreateSession(): Promise<void> {
+  async function handleSaveSession(): Promise<void> {
     if (selectedStudents.length === 0 || !date || !time) {
       setError('Please select at least one student, date, and time');
       return;
@@ -180,16 +180,16 @@ export default function TeacherSchedulePage(): React.ReactNode {
   const now = new Date();
   const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
   
-  const recentAndUpcomingSessions = sessions.filter((s) => {
-    const sessionTime = new Date(s.scheduledAt);
+  const recentAndUpcomingSessions = sessions.filter((session) => {
+    const sessionTime = new Date(session.scheduledAt);
     return sessionTime >= twentyFourHoursAgo;
   });
 
-  const morningSessions = recentAndUpcomingSessions.filter((s) => new Date(s.scheduledAt).getHours() < 12);
-  const afternoonSessions = recentAndUpcomingSessions.filter((s) => new Date(s.scheduledAt).getHours() >= 12);
+  const morningSessions = recentAndUpcomingSessions.filter((session) => new Date(session.scheduledAt).getHours() < 12);
+  const afternoonSessions = recentAndUpcomingSessions.filter((session) => new Date(session.scheduledAt).getHours() >= 12);
 
   function isJoinable(session: SessionType): boolean {
-    const sessionTime = new Date(s.scheduledAt);
+    const sessionTime = new Date(session.scheduledAt);
     const diffMs = sessionTime.getTime() - now.getTime();
     const diffMinutes = Math.floor(diffMs / 60000);
     return diffMinutes <= 15 && diffMinutes > -120 && session.status !== 'COMPLETED' && session.status !== 'MISSED';
@@ -305,7 +305,7 @@ export default function TeacherSchedulePage(): React.ReactNode {
                 </div>
               </div>
 
-              <Button onClick={handleCreateSession} disabled={loading || selectedStudents.length === 0 || !zoomLink} className="w-full bg-primary">
+              <Button onClick={handleSaveSession} disabled={loading || selectedStudents.length === 0 || !zoomLink} className="w-full bg-primary">
                 {loading ? 'Saving...' : editingSession ? 'Update Session' : `Create Session for ${selectedStudents.length} student(s)`}
               </Button>
             </div>
@@ -344,7 +344,7 @@ export default function TeacherSchedulePage(): React.ReactNode {
                           <div className="flex items-center gap-1 mt-1">
                             <Users className="h-3 w-3 text-gray-400 shrink-0" />
                             <span className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                              {session.sessionStudents.map(s => s.student.fullName).join(', ')}
+                              {session.sessionStudents.map(ss => ss.student.fullName).join(', ')}
                             </span>
                           </div>
                         </div>
@@ -367,7 +367,6 @@ export default function TeacherSchedulePage(): React.ReactNode {
                             <X className="h-3 w-3" />Missed
                           </Badge>
                         )}
-                        {/* Edit/Delete buttons for future sessions */}
                         {isFuture && session.status === 'SCHEDULED' && (
                           <div className="flex items-center gap-1">
                             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditForm(session)} title="Edit">
@@ -422,7 +421,7 @@ export default function TeacherSchedulePage(): React.ReactNode {
                           <div className="flex items-center gap-1 mt-1">
                             <Users className="h-3 w-3 text-gray-400 shrink-0" />
                             <span className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                              {session.sessionStudents.map(s => s.student.fullName).join(', ')}
+                              {session.sessionStudents.map(ss => ss.student.fullName).join(', ')}
                             </span>
                           </div>
                         </div>
