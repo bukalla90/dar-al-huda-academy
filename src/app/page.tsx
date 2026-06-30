@@ -19,7 +19,6 @@ export default function HomePage(): React.ReactNode {
   const [language, setLanguage] = useState<'en' | 'am'>('en');
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
 
-  // Optimize scroll handler with passive listener and requestAnimationFrame
   useEffect(() => {
     let ticking = false;
     const handleScroll = (): void => {
@@ -35,7 +34,6 @@ export default function HomePage(): React.ReactNode {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Memoize translations to prevent re-renders
   const translations = useMemo(() => ({
     en: {
       home: 'Home', about: 'About', courses: 'Courses', contact: 'Contact',
@@ -88,8 +86,6 @@ export default function HomePage(): React.ReactNode {
   }), []);
 
   const t = translations[language];
-
-  // Memoize static data
   const classTimes = useMemo(() => [
     { group: 'Group 1', time: '12:00 PM – 1:30 PM' },
     { group: 'Group 2', time: '3:00 PM – 6:00 PM' },
@@ -98,42 +94,29 @@ export default function HomePage(): React.ReactNode {
     { group: 'Group 5', time: '1:00 AM – 1:30 AM' },
     { group: 'Group 6', time: '3:00 AM – 5:00 AM' },
   ], []);
-
   const heroStats = useMemo(() => [
     { value: '50+', labelEn: 'Students', labelAm: 'ተማሪዎች' },
     { value: '5+', labelEn: 'Ustazs', labelAm: 'መምህራን' },
     { value: '9', labelEn: 'Courses', labelAm: 'ኮርሶች' },
   ], []);
-
   const whyUsItems = useMemo(() => [
     { icon: GraduationCap, titleEn: 'Qualified Ustazs', titleAm: 'ብቁ መምህራን', descEn: 'Experienced and certified Quran Ustazs', descAm: 'ልምድና ሰርተፊኬት ያላቸው የቁርአን መምህራን' },
     { icon: Clock, titleEn: 'Flexible Schedule', titleAm: 'ተለዋዋጭ ሰዓት', descEn: 'Learn at times that suit you best', descAm: 'በሚመችዎት ሰዓት ይማሩ' },
     { icon: Users, titleEn: 'One-on-One Classes', titleAm: 'የግል ትምህርት', descEn: 'Personalized attention for each student', descAm: 'ለእያንዳንዱ ተማሪ የግል ትኩረት' },
     { icon: Globe, titleEn: 'Worldwide Access', titleAm: 'ዓለም አቀፍ', descEn: 'Learn from anywhere in the world', descAm: 'ከየትኛውም የዓለም ክፍል ይማሩ' },
   ], []);
-
-  // Memoize course filters
   const quranCourses = useMemo(() => courses.filter(c => c.category === 'QURAN'), []);
   const islamicCourses = useMemo(() => courses.filter(c => c.category === 'ISLAMIC_STUDIES'), []);
-
   const getCleanTitle = useCallback((course: typeof courses[0]): string => {
     if (language === 'en') return course.titleEn.replace(/\s*\(.*?\)\s*/g, '').trim();
     return course.titleAm;
   }, [language]);
-
   const getCleanDescription = useCallback((course: typeof courses[0]): string => {
     if (language === 'en') return course.descriptionEn;
     return course.descriptionAm;
   }, [language]);
-
-  // Memoize language change handler
-  const toggleLanguage = useCallback(() => {
-    setLanguage(prev => prev === 'en' ? 'am' : 'en');
-  }, []);
-
-  const toggleMobileMenu = useCallback(() => {
-    setMobileMenuOpen(prev => !prev);
-  }, []);
+  const toggleLanguage = useCallback(() => setLanguage(prev => prev === 'en' ? 'am' : 'en'), []);
+  const toggleMobileMenu = useCallback(() => setMobileMenuOpen(prev => !prev), []);
 
   return (
     <div className="min-h-screen bg-background">
@@ -143,17 +126,31 @@ export default function HomePage(): React.ReactNode {
       }`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 sm:h-20 md:h-24">
-            {/* Logo - LARGE AND RESPONSIVE */}
+            {/* Logo - LARGE AND RESPONSIVE - Uses conditional rendering for visibility */}
             <Link href="/" className="flex items-center shrink-0" prefetch={true}>
-              <Image
-                src="/dar-al-huda-logo.svg"
-                alt="Dar Al Huda Academy"
-                width={280}
-                height={90}
-                className={`h-12 sm:h-16 md:h-20 lg:h-24 w-auto transition-all duration-300 ${!isScrolled ? 'brightness-0 invert' : ''}`}
-                priority
-                unoptimized
-              />
+              {isScrolled ? (
+                <Image
+                  src="/dar-al-huda-logo.svg"
+                  alt="Dar Al Huda Academy"
+                  width={280}
+                  height={90}
+                  priority
+                  className="h-12 sm:h-16 md:h-20 lg:h-24 w-auto"
+                  unoptimized
+                />
+              ) : (
+                <div className="relative">
+                  <Image
+                    src="/dar-al-huda-logo.svg"
+                    alt="Dar Al Huda Academy"
+                    width={280}
+                    height={90}
+                    priority
+                    className="h-12 sm:h-16 md:h-20 lg:h-24 w-auto brightness-0 invert"
+                    unoptimized
+                  />
+                </div>
+              )}
             </Link>
 
             <div className="hidden lg:flex items-center gap-8">
@@ -365,27 +362,49 @@ export default function HomePage(): React.ReactNode {
             <p className="text-gray-500 max-w-2xl mx-auto">{t.howToRegisterDesc}</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-4xl mx-auto">
-            {[
-              { href: 'https://wa.me/251914600349', color: 'green', title: 'WhatsApp', text: '+251 91 460 0349' },
-              { href: 'https://t.me/jemil1456', color: 'blue', title: 'Telegram', text: '@jemil1456' },
-              { href: 'tel:+251914600349', color: 'primary', title: language === 'en' ? 'Phone Call' : 'ስልክ ይደውሉ', text: '+251 91 460 0349', subText: '0921757379' },
-            ].map((item, index) => (
-              <a key={index} href={item.href} target="_blank" className="group" rel="noopener noreferrer">
-                <Card className="hover:shadow-xl transition-all duration-300 border-0 h-full">
-                  <CardContent className="pt-8 pb-6 text-center">
-                    <div className={`w-16 h-16 rounded-2xl bg-${item.color}-100 flex items-center justify-center mx-auto mb-4 group-hover:bg-${item.color}-200 transition-colors`}>
-                      <MessageCircle className={`h-8 w-8 text-${item.color}-600`} />
-                    </div>
-                    <h3 className="text-lg font-semibold mb-2">{item.title}</h3>
-                    <p className="text-sm text-gray-500 mb-2">{item.text}</p>
-                    {item.subText && <p className="text-sm text-gray-500 mb-4">{item.subText}</p>}
-                    <Badge className={`bg-${item.color}-100 text-${item.color}-700 border-0`}>
-                      {language === 'en' ? 'Click to Chat' : 'ለማውራት ይጫኑ'}
-                    </Badge>
-                  </CardContent>
-                </Card>
-              </a>
-            ))}
+            <a href="https://wa.me/251914600349" target="_blank" className="group" rel="noopener noreferrer">
+              <Card className="hover:shadow-xl transition-all duration-300 border-0 h-full">
+                <CardContent className="pt-8 pb-6 text-center">
+                  <div className="w-16 h-16 rounded-2xl bg-green-100 flex items-center justify-center mx-auto mb-4 group-hover:bg-green-200 transition-colors">
+                    <MessageCircle className="h-8 w-8 text-green-600" />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2">WhatsApp</h3>
+                  <p className="text-sm text-gray-500 mb-4">+251 91 460 0349</p>
+                  <Badge className="bg-green-100 text-green-700 border-0">
+                    {language === 'en' ? 'Click to Chat' : 'ለማውራት ይጫኑ'}
+                  </Badge>
+                </CardContent>
+              </Card>
+            </a>
+            <a href="https://t.me/jemil1456" target="_blank" className="group" rel="noopener noreferrer">
+              <Card className="hover:shadow-xl transition-all duration-300 border-0 h-full">
+                <CardContent className="pt-8 pb-6 text-center">
+                  <div className="w-16 h-16 rounded-2xl bg-blue-100 flex items-center justify-center mx-auto mb-4 group-hover:bg-blue-200 transition-colors">
+                    <MessageCircle className="h-8 w-8 text-blue-600" />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2">Telegram</h3>
+                  <p className="text-sm text-gray-500 mb-4">@jemil1456</p>
+                  <Badge className="bg-blue-100 text-blue-700 border-0">
+                    {language === 'en' ? 'Click to Chat' : 'ለማውራት ይጫኑ'}
+                  </Badge>
+                </CardContent>
+              </Card>
+            </a>
+            <a href="tel:+251914600349" className="group">
+              <Card className="hover:shadow-xl transition-all duration-300 border-0 h-full">
+                <CardContent className="pt-8 pb-6 text-center">
+                  <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4 group-hover:bg-primary/20 transition-colors">
+                    <Phone className="h-8 w-8 text-primary" />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2">{language === 'en' ? 'Phone Call' : 'ስልክ ይደውሉ'}</h3>
+                  <p className="text-sm text-gray-500 mb-2">+251 91 460 0349</p>
+                  <p className="text-sm text-gray-500 mb-4">0921757379</p>
+                  <Badge className="bg-primary/10 text-primary border-0">
+                    {language === 'en' ? 'Click to Call' : 'ለመደወል ይጫኑ'}
+                  </Badge>
+                </CardContent>
+              </Card>
+            </a>
           </div>
         </div>
       </section>
@@ -408,16 +427,18 @@ export default function HomePage(): React.ReactNode {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
             <div>
-              {/* Footer logo - LARGE AND RESPONSIVE */}
+              {/* Footer logo - LARGE AND RESPONSIVE - White on dark bg */}
               <div className="mb-4">
-                <Image
-                  src="/dar-al-huda-logo.svg"
-                  alt="Dar Al Huda Academy"
-                  width={280}
-                  height={90}
-                  className="h-14 sm:h-18 md:h-20 lg:h-24 w-auto brightness-0 invert"
-                  unoptimized
-                />
+                <div className="relative inline-block">
+                  <Image
+                    src="/dar-al-huda-logo.svg"
+                    alt="Dar Al Huda Academy"
+                    width={280}
+                    height={90}
+                    className="h-14 sm:h-18 md:h-20 lg:h-24 w-auto brightness-0 invert"
+                    unoptimized
+                  />
+                </div>
               </div>
               <p className="text-gray-400 text-sm">{t.footerAbout}</p>
               <p className="text-gray-500 text-xs mt-3">📍 Dessie, Ethiopia</p>
