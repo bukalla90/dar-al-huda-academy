@@ -433,7 +433,7 @@ export default function HomePage(): React.ReactNode {
                   alt="Dar Al Huda Academy"
                   width={200}
                   height={62}
-                  className="h-12 w-auto"
+                     className="h-14 sm:h-18 md:h-20 lg:h-24 w-auto "
                 />
               </div>
               <p className="text-gray-400 text-sm">{t.footerAbout}</p>
