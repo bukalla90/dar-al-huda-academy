@@ -427,18 +427,18 @@ export default function HomePage(): React.ReactNode {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
             <div>
-              <div className="mb-4">
-                <div className="relative inline-block">
-                  <Image
-                    src="/dar-al-huda-logo.svg"
-                    alt="Dar Al Huda Academy"
-                    width={280}
-                    height={90}
-                    className="h-14 sm:h-18 md:h-20 lg:h-24 w-auto brightness-0 invert"
-                    unoptimized
-                  />
-                </div>
-              </div>
+             <div className="mb-4">
+  <div className="relative inline-block">
+    <Image
+      src="/dar-al-huda-logo.svg"
+      alt="Dar Al Huda Academy"
+      width={280}
+      height={90}
+      className="h-14 sm:h-18 md:h-20 lg:h-24 w-auto brightness-0 invert"
+      unoptimized
+    />
+  </div>
+</div>
               <p className="text-gray-400 text-sm">{t.footerAbout}</p>
               <p className="text-gray-500 text-xs mt-3">📍 Dessie, Ethiopia</p>
             </div>
