@@ -34,8 +34,6 @@ export default function HomePage(): React.ReactNode {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // ... (keep all translations, classTimes, heroStats, whyUsItems, etc. - they are unchanged)
-
   const translations = useMemo(() => ({
     en: {
       home: 'Home', about: 'About', courses: 'Courses', contact: 'Contact',
@@ -88,6 +86,7 @@ export default function HomePage(): React.ReactNode {
   }), []);
 
   const t = translations[language];
+
   const classTimes = useMemo(() => [
     { group: 'Group 1', time: '12:00 PM – 1:30 PM' },
     { group: 'Group 2', time: '3:00 PM – 6:00 PM' },
@@ -96,27 +95,33 @@ export default function HomePage(): React.ReactNode {
     { group: 'Group 5', time: '1:00 AM – 1:30 AM' },
     { group: 'Group 6', time: '3:00 AM – 5:00 AM' },
   ], []);
+
   const heroStats = useMemo(() => [
     { value: '50+', labelEn: 'Students', labelAm: 'ተማሪዎች' },
     { value: '5+', labelEn: 'Ustazs', labelAm: 'መምህራን' },
     { value: '9', labelEn: 'Courses', labelAm: 'ኮርሶች' },
   ], []);
+
   const whyUsItems = useMemo(() => [
     { icon: GraduationCap, titleEn: 'Qualified Ustazs', titleAm: 'ብቁ መምህራን', descEn: 'Experienced and certified Quran Ustazs', descAm: 'ልምድና ሰርተፊኬት ያላቸው የቁርአን መምህራን' },
     { icon: Clock, titleEn: 'Flexible Schedule', titleAm: 'ተለዋዋጭ ሰዓት', descEn: 'Learn at times that suit you best', descAm: 'በሚመችዎት ሰዓት ይማሩ' },
     { icon: Users, titleEn: 'One-on-One Classes', titleAm: 'የግል ትምህርት', descEn: 'Personalized attention for each student', descAm: 'ለእያንዳንዱ ተማሪ የግል ትኩረት' },
     { icon: Globe, titleEn: 'Worldwide Access', titleAm: 'ዓለም አቀፍ', descEn: 'Learn from anywhere in the world', descAm: 'ከየትኛውም የዓለም ክፍል ይማሩ' },
   ], []);
+
   const quranCourses = useMemo(() => courses.filter(c => c.category === 'QURAN'), []);
   const islamicCourses = useMemo(() => courses.filter(c => c.category === 'ISLAMIC_STUDIES'), []);
+
   const getCleanTitle = useCallback((course: typeof courses[0]): string => {
     if (language === 'en') return course.titleEn.replace(/\s*\(.*?\)\s*/g, '').trim();
     return course.titleAm;
   }, [language]);
+
   const getCleanDescription = useCallback((course: typeof courses[0]): string => {
     if (language === 'en') return course.descriptionEn;
     return course.descriptionAm;
   }, [language]);
+
   const toggleLanguage = useCallback(() => setLanguage(prev => prev === 'en' ? 'am' : 'en'), []);
   const toggleMobileMenu = useCallback(() => setMobileMenuOpen(prev => !prev), []);
 
@@ -133,10 +138,11 @@ export default function HomePage(): React.ReactNode {
               <Image
                 src="/dar-al-huda-logo.svg"
                 alt="Dar Al Huda Academy"
-                width={200}
-                height={60}
-                className={`h-12 sm:h-16 w-auto transition-all duration-300 ${!isScrolled ? 'brightness-0 invert' : ''}`}
+                width={240}
+                height={72}
+                className={`h-14 sm:h-20 w-auto transition-all duration-300 ${!isScrolled ? 'brightness-0 invert' : ''}`}
                 priority
+                unoptimized
               />
             </Link>
 
@@ -414,13 +420,14 @@ export default function HomePage(): React.ReactNode {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
             <div>
-              <div className="mb-4">
+              <div className="mb-4 bg-white/10 rounded-xl p-4 inline-block">
                 <Image
                   src="/dar-al-huda-logo.svg"
                   alt="Dar Al Huda Academy"
-                  width={180}
-                  height={54}
-                  className="h-14 w-auto"
+                  width={200}
+                  height={60}
+                  className="h-16 sm:h-20 w-auto brightness-0 invert"
+                  unoptimized
                 />
               </div>
               <p className="text-gray-400 text-sm">{t.footerAbout}</p>
