@@ -113,10 +113,15 @@ export async function createClassSession(data: {
       return { success: false, error: 'Please provide a valid Zoom meeting link' };
     }
 
-    // Create date in local timezone
+    // FIX: Create date properly - interpret as UTC+3 (Ethiopia time)
+    // The form sends date as "2024-01-15" and time as "09:15"
+    // We need to create a date that represents 9:15 AM in Ethiopia (UTC+3)
     const [hours, minutes] = data.time.split(':').map(Number);
-    const scheduledAt = new Date(data.date);
-    scheduledAt.setHours(hours, minutes, 0, 0);
+    
+    // Create date in UTC by subtracting 3 hours from Ethiopia time
+    // Ethiopia 9:15 AM = UTC 6:15 AM
+    const scheduledAt = new Date(`${data.date}T00:00:00.000Z`);
+    scheduledAt.setUTCHours(hours - 3, minutes, 0, 0);
 
     if (scheduledAt <= new Date()) {
       return { success: false, error: 'Please select a future date and time' };
@@ -151,7 +156,6 @@ export async function createClassSession(data: {
   }
 }
 
-// UPDATE session
 export async function updateClassSession(data: {
   sessionId: string;
   date: string;
@@ -167,12 +171,11 @@ export async function updateClassSession(data: {
       return { success: false, error: 'Please select at least one student' };
     }
 
-    // Create date in local timezone
+    // Same UTC-3 fix for Ethiopia time
     const [hours, minutes] = data.time.split(':').map(Number);
-    const scheduledAt = new Date(data.date);
-    scheduledAt.setHours(hours, minutes, 0, 0);
+    const scheduledAt = new Date(`${data.date}T00:00:00.000Z`);
+    scheduledAt.setUTCHours(hours - 3, minutes, 0, 0);
 
-    // Delete existing session students and recreate
     await prisma.$transaction([
       prisma.sessionStudent.deleteMany({ where: { sessionId: data.sessionId } }),
       prisma.classSession.update({
@@ -195,7 +198,6 @@ export async function updateClassSession(data: {
   }
 }
 
-// DELETE session
 export async function deleteClassSession(sessionId: string): Promise<{
   success: boolean;
   error?: string;
