@@ -55,7 +55,7 @@ export function TeacherNav(): React.ReactNode {
               alt="Dar Al Huda Academy"
               width={160}
               height={48}
-               className="h-8 sm:h-9 md:h-10 lg:h-13 w-auto"
+               className="h-10 sm:h-11 md:h-12 lg:h-15 w-auto"     
               unoptimized
             />
           </Link>
