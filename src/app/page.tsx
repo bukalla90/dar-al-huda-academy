@@ -135,7 +135,7 @@ export default function HomePage(): React.ReactNode {
                   width={280}
                   height={90}
                   priority
-                  className="h-12 sm:h-16 md:h-20 lg:h-24 w-auto"
+                  className="h-10 sm:h-14 md:h-18 lg:h-20 w-auto"
                   unoptimized
                 />
               ) : (
