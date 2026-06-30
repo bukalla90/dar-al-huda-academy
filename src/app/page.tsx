@@ -1,3 +1,4 @@
+// src/app/page.tsx
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -141,32 +142,18 @@ export default function HomePage(): React.ReactNode {
         isScrolled ? 'bg-white/95 backdrop-blur-md shadow-lg' : 'bg-transparent'
       }`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            {/* Logo */}
-            <Link href="/" className="flex items-center" prefetch={true}>
-              {isScrolled ? (
-                /* Scrolled: full colour logo on white bg */
-                <Image
-                  src="/dar-al-huda-logo.svg"
-                  alt="Dar Al Huda Academy"
-                  width={180}
-                  height={56}
-                  priority
-                  className="h-10 w-auto"
-                />
-              ) : (
-                /* On hero: white-tinted version — we overlay a semi-transparent white layer */
-                <div className="relative">
-                  <Image
-                    src="/dar-al-huda-logo.svg"
-                    alt="Dar Al Huda Academy"
-                    width={180}
-                    height={56}
-                    priority
-                    className="h-10 w-auto opacity-95"
-                  />
-                </div>
-              )}
+          <div className="flex items-center justify-between h-16 sm:h-20 md:h-24">
+            {/* Logo - LARGE AND RESPONSIVE */}
+            <Link href="/" className="flex items-center shrink-0" prefetch={true}>
+              <Image
+                src="/dar-al-huda-logo.svg"
+                alt="Dar Al Huda Academy"
+                width={280}
+                height={90}
+                className={`h-12 sm:h-16 md:h-20 lg:h-24 w-auto transition-all duration-300 ${!isScrolled ? 'brightness-0 invert' : ''}`}
+                priority
+                unoptimized
+              />
             </Link>
 
             <div className="hidden lg:flex items-center gap-8">
@@ -421,14 +408,15 @@ export default function HomePage(): React.ReactNode {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
             <div>
-              {/* Footer logo — invert to white since bg is dark */}
+              {/* Footer logo - LARGE AND RESPONSIVE */}
               <div className="mb-4">
                 <Image
                   src="/dar-al-huda-logo.svg"
                   alt="Dar Al Huda Academy"
-                  width={200}
-                  height={62}
-                  className="h-12 w-auto"
+                  width={280}
+                  height={90}
+                  className="h-14 sm:h-18 md:h-20 lg:h-24 w-auto brightness-0 invert"
+                  unoptimized
                 />
               </div>
               <p className="text-gray-400 text-sm">{t.footerAbout}</p>
