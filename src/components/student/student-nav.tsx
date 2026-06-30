@@ -3,10 +3,11 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { 
-  BookOpen, Home, Settings, Menu, X, Moon, Sun,
+  Home, Settings, Menu, X, Moon, Sun,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { LogoutButton } from '@/components/auth/logout-button';
@@ -45,12 +46,16 @@ export function StudentNav(): React.ReactNode {
     <header className="sticky top-0 z-40 bg-white dark:bg-gray-900 border-b dark:border-gray-700 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <Link href="/student" className="flex items-center gap-2.5 shrink-0">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-md">
-              <BookOpen className="h-5 w-5 text-white" />
-            </div>
-            <span className="text-sm sm:text-lg font-bold text-primary">Dar Al Huda</span>
+          {/* Logo - Click goes to Home page */}
+          <Link href="/" className="flex items-center shrink-0">
+            <Image
+              src="/dar-al-huda-logo.svg"
+              alt="Dar Al Huda Academy"
+              width={160}
+              height={48}
+              className="h-8 sm:h-10 w-auto"
+              unoptimized
+            />
           </Link>
 
           {/* Desktop Navigation */}
@@ -73,14 +78,6 @@ export function StudentNav(): React.ReactNode {
                 </Link>
               );
             })}
-
-            <Link
-              href="/"
-              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-primary hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-            >
-              <Home className="h-4 w-4" />
-              Home
-            </Link>
 
             {/* Theme Toggle */}
             <Button

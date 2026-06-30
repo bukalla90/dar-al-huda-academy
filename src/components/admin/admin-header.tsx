@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
@@ -38,7 +39,6 @@ export function AdminHeader({ onMenuClick }: AdminHeaderProps): React.ReactNode 
     }
   }, []);
 
-  // Fetch unread notification count
   useEffect(() => {
     async function fetchCount(): Promise<void> {
       try {
@@ -81,8 +81,19 @@ export function AdminHeader({ onMenuClick }: AdminHeaderProps): React.ReactNode 
         <div className="h-6 w-px bg-gray-200 dark:bg-gray-700 lg:hidden" />
 
         <div className="flex flex-1 gap-x-4 self-stretch lg:gap-x-6">
-          <div className="flex items-center">
-            <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Admin Dashboard</h1>
+          <div className="flex items-center gap-3">
+            {/* Logo */}
+            <Link href="/" className="flex items-center shrink-0">
+              <Image
+                src="/dar-al-huda-logo.svg"
+                alt="Dar Al Huda Academy"
+                width={180}
+                height={56}
+                className="h-8 sm:h-10 w-auto"
+                unoptimized
+              />
+            </Link>
+            <h1 className="text-lg font-semibold text-gray-900 dark:text-white hidden sm:block">Admin Dashboard</h1>
           </div>
 
           <div className="flex items-center gap-x-3 lg:gap-x-4 ml-auto">
@@ -92,7 +103,6 @@ export function AdminHeader({ onMenuClick }: AdminHeaderProps): React.ReactNode 
               </Button>
             </Link>
 
-            {/* Notifications Bell */}
             <Link href="/admin/notifications">
               <Button variant="ghost" size="icon" className="relative text-gray-700 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-800">
                 <Bell className="h-5 w-5" />
