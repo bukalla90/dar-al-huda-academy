@@ -7,8 +7,22 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Video, Plus, Calendar, Clock, X, Loader2, Users, Check, ExternalLink, Link2, CheckCircle2 } from 'lucide-react';
-import { getTeacherSessions, getTeacherStudents, createClassSession } from '@/lib/action/class.action';
+import { 
+  Video, Plus, Calendar, Clock, X, Loader2, Users, Check, 
+  ExternalLink, Link2, CheckCircle2, Pencil, Trash2 
+} from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { 
+  getTeacherSessions, getTeacherStudents, createClassSession, 
+  updateClassSession, deleteClassSession 
+} from '@/lib/action/class.action';
 
 interface SessionStudent {
   student: { id: string; fullName: string };
@@ -31,6 +45,9 @@ interface StudentOption {
 
 export default function TeacherSchedulePage(): React.ReactNode {
   const [showForm, setShowForm] = useState<boolean>(false);
+  const [editingSession, setEditingSession] = useState<SessionType | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState<boolean>(false);
+  const [sessionToDelete, setSessionToDelete] = useState<string>('');
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
   const [date, setDate] = useState<string>('');
   const [time, setTime] = useState<string>('');
@@ -38,6 +55,7 @@ export default function TeacherSchedulePage(): React.ReactNode {
   const [sessions, setSessions] = useState<SessionType[]>([]);
   const [students, setStudents] = useState<StudentOption[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
+  const [deleteLoading, setDeleteLoading] = useState<boolean>(false);
   const [pageLoading, setPageLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
   const [success, setSuccess] = useState<string>('');
@@ -76,6 +94,27 @@ export default function TeacherSchedulePage(): React.ReactNode {
     );
   }
 
+  function openEditForm(session: SessionType): void {
+    setEditingSession(session);
+    setSelectedStudents(session.sessionStudents.map(s => s.student.id));
+    const sessionDate = new Date(session.scheduledAt);
+    setDate(sessionDate.toISOString().split('T')[0]);
+    setTime(
+      `${String(sessionDate.getHours()).padStart(2, '0')}:${String(sessionDate.getMinutes()).padStart(2, '0')}`
+    );
+    setZoomLink(session.meetingUrl);
+    setShowForm(true);
+  }
+
+  function resetForm(): void {
+    setEditingSession(null);
+    setSelectedStudents([]);
+    setDate('');
+    setTime('');
+    setZoomLink('');
+    setShowForm(false);
+  }
+
   async function handleCreateSession(): Promise<void> {
     if (selectedStudents.length === 0 || !date || !time) {
       setError('Please select at least one student, date, and time');
@@ -90,30 +129,54 @@ export default function TeacherSchedulePage(): React.ReactNode {
     setLoading(true);
     setError('');
 
-    const result = await createClassSession({
-      studentIds: selectedStudents,
-      date,
-      time,
-      meetingUrl: zoomLink,
-    });
+    let result;
+    if (editingSession) {
+      result = await updateClassSession({
+        sessionId: editingSession.id,
+        studentIds: selectedStudents,
+        date,
+        time,
+        meetingUrl: zoomLink,
+      });
+    } else {
+      result = await createClassSession({
+        studentIds: selectedStudents,
+        date,
+        time,
+        meetingUrl: zoomLink,
+      });
+    }
 
     if (result.success) {
-      setSuccess(`Session created for ${selectedStudents.length} student(s)!`);
-      setSelectedStudents([]);
-      setDate('');
-      setTime('');
-      setZoomLink('');
-      setShowForm(false);
+      setSuccess(editingSession ? 'Session updated!' : `Session created for ${selectedStudents.length} student(s)!`);
+      resetForm();
       loadData();
       setTimeout(() => setSuccess(''), 3000);
     } else {
-      setError(result.error || 'Failed to create session');
+      setError(result.error || 'Failed to save session');
     }
 
     setLoading(false);
   }
 
-  // Filter: Only show sessions from last 24 hours and future
+  async function handleDeleteSession(): Promise<void> {
+    if (!sessionToDelete) return;
+
+    setDeleteLoading(true);
+    const result = await deleteClassSession(sessionToDelete);
+    
+    if (result.success) {
+      setSuccess('Session deleted!');
+      setDeleteDialogOpen(false);
+      setSessionToDelete('');
+      loadData();
+      setTimeout(() => setSuccess(''), 3000);
+    } else {
+      setError(result.error || 'Failed to delete session');
+    }
+    setDeleteLoading(false);
+  }
+
   const now = new Date();
   const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
   
@@ -125,13 +188,10 @@ export default function TeacherSchedulePage(): React.ReactNode {
   const morningSessions = recentAndUpcomingSessions.filter((s) => new Date(s.scheduledAt).getHours() < 12);
   const afternoonSessions = recentAndUpcomingSessions.filter((s) => new Date(s.scheduledAt).getHours() >= 12);
 
-  // Check if session is still joinable (not completed and within time window)
   function isJoinable(session: SessionType): boolean {
-    const sessionTime = new Date(session.scheduledAt);
+    const sessionTime = new Date(s.scheduledAt);
     const diffMs = sessionTime.getTime() - now.getTime();
     const diffMinutes = Math.floor(diffMs / 60000);
-    
-    // Can join 15 min before and up to 2 hours after start
     return diffMinutes <= 15 && diffMinutes > -120 && session.status !== 'COMPLETED' && session.status !== 'MISSED';
   }
 
@@ -150,7 +210,7 @@ export default function TeacherSchedulePage(): React.ReactNode {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
-          <p className="text-gray-500 dark:text-gray-400">Loading schedule....</p>
+          <p className="text-gray-500 dark:text-gray-400">Loading schedule...</p>
         </div>
       </div>
     );
@@ -165,7 +225,7 @@ export default function TeacherSchedulePage(): React.ReactNode {
             Showing sessions from last 24 hours and upcoming
           </p>
         </div>
-        <Button onClick={() => setShowForm(!showForm)} className="bg-primary">
+        <Button onClick={() => { resetForm(); setShowForm(true); }} className="bg-primary">
           <Plus className="h-4 w-4 mr-2" />New Session
         </Button>
       </div>
@@ -173,14 +233,15 @@ export default function TeacherSchedulePage(): React.ReactNode {
       {success && <div className="bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 p-4 rounded-xl text-sm">{success}</div>}
       {error && <div className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 p-4 rounded-xl text-sm">{error}</div>}
 
-      {/* Create Session Form */}
+      {/* Create/Edit Session Form */}
       {showForm && (
         <Card className="border-2 border-primary/20 dark:bg-gray-800 dark:border-gray-700">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="flex items-center gap-2 dark:text-white">
-              <Video className="h-5 w-5 text-primary" />Create Zoom Session
+              <Video className="h-5 w-5 text-primary" />
+              {editingSession ? 'Edit Session' : 'Create Zoom Session'}
             </CardTitle>
-            <Button variant="ghost" size="icon" onClick={() => setShowForm(false)} className="dark:hover:bg-gray-700">
+            <Button variant="ghost" size="icon" onClick={resetForm} className="dark:hover:bg-gray-700">
               <X className="h-4 w-4" />
             </Button>
           </CardHeader>
@@ -188,8 +249,7 @@ export default function TeacherSchedulePage(): React.ReactNode {
             <div className="space-y-4">
               <div>
                 <Label className="dark:text-gray-300">
-                  <Link2 className="h-4 w-4 inline mr-1" />
-                  Zoom Meeting Link *
+                  <Link2 className="h-4 w-4 inline mr-1" />Zoom Meeting Link *
                 </Label>
                 <Input 
                   type="url"
@@ -198,9 +258,6 @@ export default function TeacherSchedulePage(): React.ReactNode {
                   onChange={(e) => setZoomLink(e.target.value)}
                   className="dark:bg-gray-700 dark:border-gray-600 dark:text-white mt-1"
                 />
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Create a meeting in Zoom, copy the invite link, and paste it here
-                </p>
               </div>
 
               <div>
@@ -249,7 +306,7 @@ export default function TeacherSchedulePage(): React.ReactNode {
               </div>
 
               <Button onClick={handleCreateSession} disabled={loading || selectedStudents.length === 0 || !zoomLink} className="w-full bg-primary">
-                {loading ? 'Creating...' : `Create Session for ${selectedStudents.length} student(s)`}
+                {loading ? 'Saving...' : editingSession ? 'Update Session' : `Create Session for ${selectedStudents.length} student(s)`}
               </Button>
             </div>
           </CardContent>
@@ -269,14 +326,15 @@ export default function TeacherSchedulePage(): React.ReactNode {
               {morningSessions.map((session) => {
                 const joinable = isJoinable(session);
                 const isPast = new Date(session.scheduledAt) < now;
+                const isFuture = new Date(session.scheduledAt) > now;
                 
                 return (
                   <div key={session.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <Video className="h-5 w-5 text-primary" />
-                        <div>
-                          <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <Video className="h-5 w-5 text-primary shrink-0" />
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-medium dark:text-white text-sm">
                               {new Date(session.scheduledAt).toLocaleDateString()} at{' '}
                               {new Date(session.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -284,30 +342,44 @@ export default function TeacherSchedulePage(): React.ReactNode {
                             {getStatusBadge(session.status)}
                           </div>
                           <div className="flex items-center gap-1 mt-1">
-                            <Users className="h-3 w-3 text-gray-400" />
-                            <span className="text-xs text-gray-500 dark:text-gray-400">
+                            <Users className="h-3 w-3 text-gray-400 shrink-0" />
+                            <span className="text-xs text-gray-500 dark:text-gray-400 truncate">
                               {session.sessionStudents.map(s => s.student.fullName).join(', ')}
                             </span>
                           </div>
                         </div>
                       </div>
-                      {joinable && session.meetingUrl && (
-                        <a href={session.meetingUrl} target="_blank" rel="noopener noreferrer">
-                          <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
-                            <ExternalLink className="h-4 w-4 mr-1" />Join Zoom
-                          </Button>
-                        </a>
-                      )}
-                      {isPast && !joinable && session.status === 'COMPLETED' && (
-                        <Badge variant="outline" className="text-green-600 dark:text-green-400 flex items-center gap-1">
-                          <CheckCircle2 className="h-3 w-3" />Done
-                        </Badge>
-                      )}
-                      {isPast && !joinable && session.status === 'MISSED' && (
-                        <Badge variant="outline" className="text-red-500 flex items-center gap-1">
-                          <X className="h-3 w-3" />Missed
-                        </Badge>
-                      )}
+                      <div className="flex items-center gap-2 shrink-0 ml-2">
+                        {joinable && session.meetingUrl && (
+                          <a href={session.meetingUrl} target="_blank" rel="noopener noreferrer">
+                            <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
+                              <ExternalLink className="h-4 w-4 mr-1" />Join Zoom
+                            </Button>
+                          </a>
+                        )}
+                        {isPast && !joinable && session.status === 'COMPLETED' && (
+                          <Badge variant="outline" className="text-green-600 dark:text-green-400 flex items-center gap-1">
+                            <CheckCircle2 className="h-3 w-3" />Done
+                          </Badge>
+                        )}
+                        {isPast && !joinable && session.status === 'MISSED' && (
+                          <Badge variant="outline" className="text-red-500 flex items-center gap-1">
+                            <X className="h-3 w-3" />Missed
+                          </Badge>
+                        )}
+                        {/* Edit/Delete buttons for future sessions */}
+                        {isFuture && session.status === 'SCHEDULED' && (
+                          <div className="flex items-center gap-1">
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditForm(session)} title="Edit">
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-700" 
+                              onClick={() => { setSessionToDelete(session.id); setDeleteDialogOpen(true); }} title="Delete">
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );
@@ -332,14 +404,15 @@ export default function TeacherSchedulePage(): React.ReactNode {
               {afternoonSessions.map((session) => {
                 const joinable = isJoinable(session);
                 const isPast = new Date(session.scheduledAt) < now;
+                const isFuture = new Date(session.scheduledAt) > now;
                 
                 return (
                   <div key={session.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <Video className="h-5 w-5 text-primary" />
-                        <div>
-                          <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <Video className="h-5 w-5 text-primary shrink-0" />
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-medium dark:text-white text-sm">
                               {new Date(session.scheduledAt).toLocaleDateString()} at{' '}
                               {new Date(session.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -347,30 +420,43 @@ export default function TeacherSchedulePage(): React.ReactNode {
                             {getStatusBadge(session.status)}
                           </div>
                           <div className="flex items-center gap-1 mt-1">
-                            <Users className="h-3 w-3 text-gray-400" />
-                            <span className="text-xs text-gray-500 dark:text-gray-400">
+                            <Users className="h-3 w-3 text-gray-400 shrink-0" />
+                            <span className="text-xs text-gray-500 dark:text-gray-400 truncate">
                               {session.sessionStudents.map(s => s.student.fullName).join(', ')}
                             </span>
                           </div>
                         </div>
                       </div>
-                      {joinable && session.meetingUrl && (
-                        <a href={session.meetingUrl} target="_blank" rel="noopener noreferrer">
-                          <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
-                            <ExternalLink className="h-4 w-4 mr-1" />Join Zoom
-                          </Button>
-                        </a>
-                      )}
-                      {isPast && !joinable && session.status === 'COMPLETED' && (
-                        <Badge variant="outline" className="text-green-600 dark:text-green-400 flex items-center gap-1">
-                          <CheckCircle2 className="h-3 w-3" />Done
-                        </Badge>
-                      )}
-                      {isPast && !joinable && session.status === 'MISSED' && (
-                        <Badge variant="outline" className="text-red-500 flex items-center gap-1">
-                          <X className="h-3 w-3" />Missed
-                        </Badge>
-                      )}
+                      <div className="flex items-center gap-2 shrink-0 ml-2">
+                        {joinable && session.meetingUrl && (
+                          <a href={session.meetingUrl} target="_blank" rel="noopener noreferrer">
+                            <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
+                              <ExternalLink className="h-4 w-4 mr-1" />Join Zoom
+                            </Button>
+                          </a>
+                        )}
+                        {isPast && !joinable && session.status === 'COMPLETED' && (
+                          <Badge variant="outline" className="text-green-600 dark:text-green-400 flex items-center gap-1">
+                            <CheckCircle2 className="h-3 w-3" />Done
+                          </Badge>
+                        )}
+                        {isPast && !joinable && session.status === 'MISSED' && (
+                          <Badge variant="outline" className="text-red-500 flex items-center gap-1">
+                            <X className="h-3 w-3" />Missed
+                          </Badge>
+                        )}
+                        {isFuture && session.status === 'SCHEDULED' && (
+                          <div className="flex items-center gap-1">
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditForm(session)} title="Edit">
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-700" 
+                              onClick={() => { setSessionToDelete(session.id); setDeleteDialogOpen(true); }} title="Delete">
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );
@@ -381,6 +467,27 @@ export default function TeacherSchedulePage(): React.ReactNode {
           )}
         </CardContent>
       </Card>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-md dark:bg-gray-800 dark:border-gray-700">
+          <DialogHeader>
+            <DialogTitle className="dark:text-white">Delete Session</DialogTitle>
+            <DialogDescription className="dark:text-gray-400">
+              Are you sure you want to delete this session? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex gap-3">
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} className="dark:border-gray-600 dark:text-gray-300">
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteSession} disabled={deleteLoading}>
+              {deleteLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Trash2 className="h-4 w-4 mr-2" />}
+              {deleteLoading ? 'Deleting...' : 'Delete'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

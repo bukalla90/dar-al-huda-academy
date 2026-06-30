@@ -113,7 +113,11 @@ export async function createClassSession(data: {
       return { success: false, error: 'Please provide a valid Zoom meeting link' };
     }
 
-    const scheduledAt = new Date(`${data.date}T${data.time}:00`);
+    // Create date in local timezone
+    const [hours, minutes] = data.time.split(':').map(Number);
+    const scheduledAt = new Date(data.date);
+    scheduledAt.setHours(hours, minutes, 0, 0);
+
     if (scheduledAt <= new Date()) {
       return { success: false, error: 'Please select a future date and time' };
     }
@@ -147,6 +151,64 @@ export async function createClassSession(data: {
   }
 }
 
+// UPDATE session
+export async function updateClassSession(data: {
+  sessionId: string;
+  date: string;
+  time: string;
+  meetingUrl: string;
+  studentIds: string[];
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const teacherId = await getTeacherId();
+    if (!teacherId) return { success: false, error: 'Not authenticated' };
+
+    if (!data.studentIds || data.studentIds.length === 0) {
+      return { success: false, error: 'Please select at least one student' };
+    }
+
+    // Create date in local timezone
+    const [hours, minutes] = data.time.split(':').map(Number);
+    const scheduledAt = new Date(data.date);
+    scheduledAt.setHours(hours, minutes, 0, 0);
+
+    // Delete existing session students and recreate
+    await prisma.$transaction([
+      prisma.sessionStudent.deleteMany({ where: { sessionId: data.sessionId } }),
+      prisma.classSession.update({
+        where: { id: data.sessionId },
+        data: {
+          scheduledAt,
+          meetingUrl: data.meetingUrl,
+          sessionStudents: {
+            create: data.studentIds.map((studentId) => ({ studentId })),
+          },
+        },
+      }),
+    ]);
+
+    revalidatePath('/teacher/schedule');
+    return { success: true };
+  } catch (error) {
+    console.error('updateClassSession error:', error);
+    return { success: false, error: 'Failed to update session' };
+  }
+}
+
+// DELETE session
+export async function deleteClassSession(sessionId: string): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  try {
+    await prisma.classSession.delete({ where: { id: sessionId } });
+    revalidatePath('/teacher/schedule');
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: 'Failed to delete session' };
+  }
+}
+
 export async function getClasses(): Promise<{
   success: boolean;
   sessions?: Array<{
@@ -177,19 +239,6 @@ export async function getClasses(): Promise<{
     return { success: true, sessions };
   } catch (error) {
     return { success: false, error: 'Failed to fetch classes' };
-  }
-}
-
-export async function deleteClassSession(sessionId: string): Promise<{
-  success: boolean;
-  error?: string;
-}> {
-  try {
-    await prisma.classSession.delete({ where: { id: sessionId } });
-    revalidatePath('/teacher/schedule');
-    return { success: true };
-  } catch (error) {
-    return { success: false, error: 'Failed to delete session' };
   }
 }
 
