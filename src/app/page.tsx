@@ -126,7 +126,7 @@ export default function HomePage(): React.ReactNode {
       }`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 sm:h-20 md:h-24">
-            {/* Logo - LARGE AND RESPONSIVE - Uses conditional rendering for visibility */}
+            {/* Logo - LARGE AND RESPONSIVE */}
             <Link href="/" className="flex items-center shrink-0" prefetch={true}>
               {isScrolled ? (
                 <Image
@@ -146,7 +146,7 @@ export default function HomePage(): React.ReactNode {
                     width={280}
                     height={90}
                     priority
-                    className="h-12 sm:h-16 md:h-20 lg:h-24 w-auto brightness-0 invert"
+                    className="h-12 sm:h-16 md:h-20 lg:h-24 w-auto opacity-95"
                     unoptimized
                   />
                 </div>
@@ -427,7 +427,6 @@ export default function HomePage(): React.ReactNode {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
             <div>
-              {/* Footer logo - LARGE AND RESPONSIVE - White on dark bg */}
               <div className="mb-4">
                 <div className="relative inline-block">
                   <Image
