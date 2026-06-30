@@ -171,6 +171,16 @@ export async function deleteStudent(studentId: string): Promise<{
       return { success: false, error: 'Student not found' };
     }
 
+    // Delete all related records first to avoid foreign key constraints
+    await prisma.$transaction([
+      prisma.payment.deleteMany({ where: { studentId } }),
+      prisma.attendance.deleteMany({ where: { studentId } }),
+      prisma.studentProgress.deleteMany({ where: { studentId } }),
+      prisma.sessionStudent.deleteMany({ where: { studentId } }),
+      prisma.material.updateMany({ where: { studentId }, data: { studentId: null } }),
+    ]);
+
+    // Now delete the user (cascades to student)
     await prisma.user.delete({
       where: { id: student.userId },
     });
@@ -178,6 +188,7 @@ export async function deleteStudent(studentId: string): Promise<{
     revalidatePath('/admin/students');
     return { success: true };
   } catch (error) {
+    console.error('Delete student error:', error);
     return { success: false, error: 'Failed to delete student' };
   }
 }
@@ -256,38 +267,24 @@ export async function getStudentsPaginated(
         OR: [
           { fullName: { contains: filters.search, mode: 'insensitive' } },
           { phone: { contains: filters.search } },
-          { 
-            user: { 
-              username: { contains: filters.search, mode: 'insensitive' } 
-            } 
-          },
+          { user: { username: { contains: filters.search, mode: 'insensitive' } } },
         ],
       });
     }
     
     if (filters?.courseType) {
-      whereConditions.push({
-        courseType: filters.courseType as CourseType,
-      });
+      whereConditions.push({ courseType: filters.courseType as CourseType });
     }
     
     if (filters?.teacherId) {
-      whereConditions.push({
-        teacherId: filters.teacherId,
-      });
+      whereConditions.push({ teacherId: filters.teacherId });
     }
     
     if (filters?.status) {
-      whereConditions.push({
-        user: {
-          isActive: filters.status === 'active',
-        },
-      });
+      whereConditions.push({ user: { isActive: filters.status === 'active' } });
     }
 
-    const where: StudentWhereInput = whereConditions.length > 0 
-      ? { AND: whereConditions } 
-      : {};
+    const where: StudentWhereInput = whereConditions.length > 0 ? { AND: whereConditions } : {};
 
     const [students, totalCount] = await Promise.all([
       prisma.student.findMany({
@@ -295,35 +292,14 @@ export async function getStudentsPaginated(
         skip: (page - 1) * pageSize,
         take: pageSize,
         include: {
-          user: {
-            select: {
-              id: true,
-              username: true,
-              isActive: true,
-            },
-          },
-          teacher: {
-            select: {
-              id: true,
-              fullName: true,
-            },
-          },
+          user: { select: { id: true, username: true, isActive: true } },
+          teacher: { select: { id: true, fullName: true } },
           payments: {
             orderBy: { createdAt: 'desc' },
             take: 1,
-            select: {
-              id: true,
-              status: true,
-              month: true,
-              amount: true,
-            },
+            select: { id: true, status: true, month: true, amount: true },
           },
-          _count: {
-            select: {
-              sessionStudents: true,
-              progress: true,
-            },
-          },
+          _count: { select: { sessionStudents: true, progress: true } },
         },
         orderBy: { createdAt: 'desc' },
       }) as unknown as StudentWithRelations[],
@@ -354,48 +330,23 @@ export async function getStudentById(studentId: string): Promise<{
     const student = await prisma.student.findUnique({
       where: { id: studentId },
       include: {
-        user: {
-          select: {
-            id: true,
-            username: true,
-            isActive: true,
-          },
-        },
-        teacher: {
-          select: {
-            id: true,
-            fullName: true,
-          },
-        },
-        payments: {
-          orderBy: { month: 'desc' },
-          take: 12,
-        },
+        user: { select: { id: true, username: true, isActive: true } },
+        teacher: { select: { id: true, fullName: true } },
+        payments: { orderBy: { month: 'desc' }, take: 12 },
         sessionStudents: {
-          include: {
-            session: {
-              include: {
-                teacher: { select: { fullName: true } },
-              },
-            },
-          },
+          include: { session: { include: { teacher: { select: { fullName: true } } } } },
           orderBy: { session: { scheduledAt: 'desc' } },
           take: 10,
         },
         progress: {
           orderBy: { createdAt: 'desc' },
           take: 10,
-          include: {
-            teacher: { select: { fullName: true } },
-          },
+          include: { teacher: { select: { fullName: true } } },
         },
       },
     }) as unknown as StudentWithRelations | null;
 
-    if (!student) {
-      return { success: false, error: 'Student not found' };
-    }
-
+    if (!student) return { success: false, error: 'Student not found' };
     return { success: true, student };
   } catch (error) {
     console.error('Error fetching student:', error);
@@ -410,11 +361,7 @@ export async function getAllTeachers(): Promise<{
 }> {
   try {
     const teachers: TeacherOption[] = await prisma.teacher.findMany({
-      select: {
-        id: true,
-        fullName: true,
-        email: true,
-      },
+      select: { id: true, fullName: true, email: true },
       orderBy: { fullName: 'asc' },
     });
 

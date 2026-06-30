@@ -84,16 +84,8 @@ export async function getTeachers(): Promise<{
   try {
     const teachers = await prisma.teacher.findMany({
       include: {
-        user: {
-          select: {
-            id: true,
-            username: true,
-            isActive: true,
-          },
-        },
-        students: {
-          select: { id: true },
-        },
+        user: { select: { id: true, username: true, isActive: true } },
+        students: { select: { id: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -104,14 +96,11 @@ export async function getTeachers(): Promise<{
   }
 }
 
-// Add this to src/lib/action/teacher.actions.ts
-
 export async function deleteTeacher(teacherId: string): Promise<{
   success: boolean;
   error?: string;
 }> {
   try {
-    // Find teacher to get userId
     const teacher = await prisma.teacher.findUnique({
       where: { id: teacherId },
       select: { userId: true },
@@ -121,7 +110,15 @@ export async function deleteTeacher(teacherId: string): Promise<{
       return { success: false, error: 'Teacher not found' };
     }
 
-    // Delete user (cascades to teacher due to onDelete: Cascade)
+    // Delete all related records first to avoid foreign key constraints
+    await prisma.$transaction([
+      prisma.classSession.deleteMany({ where: { teacherId } }),
+      prisma.studentProgress.deleteMany({ where: { teacherId } }),
+      prisma.material.deleteMany({ where: { teacherId } }),
+      prisma.student.updateMany({ where: { teacherId }, data: { teacherId: null } }),
+    ]);
+
+    // Now delete the user (cascades to teacher)
     await prisma.user.delete({
       where: { id: teacher.userId },
     });
