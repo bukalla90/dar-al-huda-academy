@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, Save, BookOpen, Star, Plus, Loader2 } from 'lucide-react';
+import { ArrowLeft, Save, BookOpen, Star, Plus, Loader2, Clock, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 import { createProgress, getStudentProgress, getStudentCurrentStatus } from '@/lib/action/progress.action';
 
@@ -24,7 +24,12 @@ const progressSchema = z.object({
   notes: z.string().optional(),
 });
 
+const scheduleSchema = z.object({
+  scheduleTime: z.string().min(1, 'Schedule time is required'),
+});
+
 type ProgressFormData = z.infer<typeof progressSchema>;
+type ScheduleFormData = z.infer<typeof scheduleSchema>;
 
 interface ProgressRecord {
   id: string;
@@ -52,11 +57,15 @@ export default function StudentProgressPage(): React.ReactNode {
   const studentId = params.studentId as string;
 
   const [showForm, setShowForm] = useState<boolean>(false);
+  const [showScheduleForm, setShowScheduleForm] = useState<boolean>(false);
   const [progress, setProgress] = useState<ProgressRecord[]>([]);
   const [status, setStatus] = useState<StudentStatus | null>(null);
+  const [scheduleTime, setScheduleTime] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
+  const [scheduleLoading, setScheduleLoading] = useState<boolean>(false);
   const [pageLoading, setPageLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
+  const [success, setSuccess] = useState<string>('');
 
   const {
     register,
@@ -67,6 +76,14 @@ export default function StudentProgressPage(): React.ReactNode {
     formState: { errors },
   } = useForm<ProgressFormData>({
     resolver: zodResolver(progressSchema),
+  });
+
+  const {
+    register: registerSchedule,
+    handleSubmit: handleScheduleSubmit,
+    formState: { errors: scheduleErrors },
+  } = useForm<ScheduleFormData>({
+    resolver: zodResolver(scheduleSchema),
   });
 
   const score = watch('score');
@@ -87,6 +104,15 @@ export default function StudentProgressPage(): React.ReactNode {
     if (statusResult.success && statusResult.status) {
       setStatus(statusResult.status);
     }
+
+    // Load student schedule time
+    try {
+      const res = await fetch(`/api/students/${studentId}/schedule`);
+      const data = await res.json();
+      if (data.success && data.scheduleTime) {
+        setScheduleTime(data.scheduleTime);
+      }
+    } catch {}
 
     setPageLoading(false);
   }, [studentId]);
@@ -119,6 +145,35 @@ export default function StudentProgressPage(): React.ReactNode {
     setLoading(false);
   }
 
+  async function onScheduleSubmit(data: ScheduleFormData): Promise<void> {
+    setScheduleLoading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const res = await fetch(`/api/students/${studentId}/schedule`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scheduleTime: data.scheduleTime }),
+      });
+
+      const result = await res.json();
+
+      if (result.success) {
+        setScheduleTime(data.scheduleTime);
+        setShowScheduleForm(false);
+        setSuccess('Daily schedule updated!');
+        setTimeout(() => setSuccess(''), 3000);
+      } else {
+        setError(result.error || 'Failed to update schedule');
+      }
+    } catch {
+      setError('Failed to update schedule');
+    } finally {
+      setScheduleLoading(false);
+    }
+  }
+
   if (pageLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -145,11 +200,93 @@ export default function StudentProgressPage(): React.ReactNode {
             <p className="text-sm text-gray-500 dark:text-gray-400">Track memorization and recitation</p>
           </div>
         </div>
-        <Button onClick={() => setShowForm(!showForm)} className="bg-primary">
-          <Plus className="h-4 w-4 mr-2" />
-          Add Progress
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={() => setShowScheduleForm(!showScheduleForm)} variant="outline" className="dark:border-gray-600 dark:text-gray-300">
+            <Clock className="h-4 w-4 mr-2" />
+            Set Schedule
+          </Button>
+          <Button onClick={() => setShowForm(!showForm)} className="bg-primary">
+            <Plus className="h-4 w-4 mr-2" />
+            Add Progress
+          </Button>
+        </div>
       </div>
+
+      {success && <div className="bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 p-4 rounded-xl text-sm">{success}</div>}
+      {error && <div className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 p-4 rounded-xl text-sm">{error}</div>}
+
+      {/* Daily Schedule Section */}
+      <Card className="dark:bg-gray-800 dark:border-gray-700">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base flex items-center gap-2 dark:text-white">
+            <Clock className="h-5 w-5 text-accent" />
+            Permanent Daily Schedule
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {scheduleTime ? (
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-2xl font-bold text-primary">{scheduleTime}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  This student has class everyday at this time
+                </p>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => setShowScheduleForm(true)} className="dark:border-gray-600 dark:text-gray-300">
+                Change
+              </Button>
+            </div>
+          ) : (
+            <div className="text-center py-4">
+              <Clock className="h-10 w-10 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
+              <p className="text-sm text-gray-500 dark:text-gray-400">No permanent schedule set</p>
+              <Button variant="outline" size="sm" className="mt-2 dark:border-gray-600 dark:text-gray-300" onClick={() => setShowScheduleForm(true)}>
+                <Plus className="h-4 w-4 mr-1" /> Set Schedule
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Schedule Form */}
+      {showScheduleForm && (
+        <Card className="border-2 border-accent/20 dark:bg-gray-800 dark:border-gray-700">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 dark:text-white">
+              <Clock className="h-5 w-5 text-accent" />
+              Set Daily Schedule Time
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleScheduleSubmit(onScheduleSubmit)} className="space-y-4">
+              <div>
+                <Label className="dark:text-gray-300">Daily Class Time *</Label>
+                <Input 
+                  type="time"
+                  {...registerSchedule('scheduleTime')}
+                  defaultValue={scheduleTime}
+                  className="dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                />
+                {scheduleErrors.scheduleTime && (
+                  <p className="text-red-500 text-xs mt-1">{scheduleErrors.scheduleTime.message}</p>
+                )}
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  This will be shown on the student&apos;s dashboard as their regular class time
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button type="submit" disabled={scheduleLoading} className="flex-1">
+                  {scheduleLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                  {scheduleLoading ? 'Saving...' : 'Save Schedule'}
+                </Button>
+                <Button type="button" variant="outline" onClick={() => setShowScheduleForm(false)} className="dark:border-gray-600 dark:text-gray-300">
+                  Cancel
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Current Status */}
       {status && (

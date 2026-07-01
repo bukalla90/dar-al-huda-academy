@@ -1,9 +1,9 @@
-// src/lib/action/material.action.ts
 'use server';
 
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
+import { Prisma } from '@/generated/prisma/client';
 
 export async function uploadMaterial(formData: FormData): Promise<{
   success: boolean;
@@ -18,6 +18,7 @@ export async function uploadMaterial(formData: FormData): Promise<{
     const file = formData.get('file') as File;
     const title = formData.get('title') as string;
     const studentId = (formData.get('studentId') as string) || null;
+    const courseType = (formData.get('courseType') as string) || null;
 
     if (!file || !title) {
       return { success: false, error: 'File and title are required' };
@@ -65,12 +66,14 @@ export async function uploadMaterial(formData: FormData): Promise<{
         title,
         fileUrl: data.secure_url,
         type,
+        courseType: courseType || null,
         teacherId: finalTeacherId,
         studentId: studentId || null,
       },
     });
 
     revalidatePath('/admin/materials');
+    revalidatePath('/student');
     return { success: true, url: data.secure_url };
   } catch (error) {
     console.error('Upload error:', error);
@@ -78,35 +81,69 @@ export async function uploadMaterial(formData: FormData): Promise<{
   }
 }
 
-export async function getMaterials(): Promise<{
+// Define proper type for material with relations
+type MaterialWithRelations = {
+  id: string;
+  title: string;
+  fileUrl: string;
+  type: string;
+  courseType: string | null;
+  createdAt: Date;
+  teacher: { fullName: string };
+  student: { fullName: string } | null;
+};
+
+export async function getMaterials(courseType?: string): Promise<{
   success: boolean;
-  materials?: Array<{
-    id: string;
-    title: string;
-    fileUrl: string;
-    type: string;
-    createdAt: Date;
-    teacher: { fullName: string };
-    student: { fullName: string } | null;
-  }>;
+  materials?: MaterialWithRelations[];
   error?: string;
 }> {
   try {
+    const whereClause: Prisma.MaterialWhereInput = {};
+    
+    // If courseType is provided, get materials for that course OR all courses (null)
+    if (courseType) {
+      whereClause.OR = [
+        { courseType: courseType as Prisma.EnumCourseTypeFilter["equals"] },
+        { courseType: null }
+      ];
+    }
+
     const materials = await prisma.material.findMany({
-      include: {
-        teacher: { select: { fullName: true } },
-        student: { select: { fullName: true } },
+      where: whereClause,
+      select: {
+        id: true,
+        title: true,
+        fileUrl: true,
+        type: true,
+        courseType: true,
+        createdAt: true,
+        teacher: {
+          select: {
+            fullName: true,
+          },
+        },
+        student: {
+          select: {
+            fullName: true,
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
     });
 
-    return { success: true, materials };
+    return { 
+      success: true, 
+      materials: materials.map(material => ({
+        ...material,
+        type: material.type as string,
+      }))
+    };
   } catch (error) {
     return { success: false, error: 'Failed to fetch materials' };
   }
 }
 
-// ADD THIS - Delete material function
 export async function deleteMaterial(materialId: string): Promise<{
   success: boolean;
   error?: string;
@@ -117,6 +154,7 @@ export async function deleteMaterial(materialId: string): Promise<{
     });
 
     revalidatePath('/admin/materials');
+    revalidatePath('/student');
     return { success: true };
   } catch (error) {
     console.error('Delete error:', error);
