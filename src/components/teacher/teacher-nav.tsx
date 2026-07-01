@@ -110,9 +110,10 @@ export function TeacherNav(): React.ReactNode {
             </div>
           </nav>
 
-          {/* Mobile: Dashboard link + Students link + theme + hamburger */}
+          {/* Mobile: Dashboard button + Theme toggle + hamburger */}
+          {/* FIX: Only Dashboard button visible, Students & Schedule in hamburger */}
           <div className="flex items-center gap-2 md:hidden">
-            {/* ADDED: Dashboard button for mobile */}
+            {/* Dashboard button - always visible on mobile */}
             <Link
               href="/teacher"
               className={cn(
@@ -126,19 +127,6 @@ export function TeacherNav(): React.ReactNode {
               <span>Dashboard</span>
             </Link>
 
-            <Link
-              href="/teacher/students"
-              className={cn(
-                'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors',
-                pathname === '/teacher/students'
-                  ? 'bg-primary/10 text-primary'
-                  : 'text-gray-600 dark:text-gray-300'
-              )}
-            >
-              <Users className="h-4 w-4" />
-              <span>Students</span>
-            </Link>
-
             {/* Mobile Theme Toggle */}
             <Button
               variant="ghost"
@@ -149,6 +137,7 @@ export function TeacherNav(): React.ReactNode {
               {theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
             </Button>
             
+            {/* Hamburger Menu */}
             <Button
               variant="ghost"
               size="icon"
@@ -161,7 +150,7 @@ export function TeacherNav(): React.ReactNode {
         </div>
       </div>
 
-      {/* Mobile Menu Overlay */}
+      {/* Mobile Menu Overlay - Students, Schedule, Settings, Home, Logout are here */}
       {mobileMenuOpen && (
         <div className="md:hidden">
           <div className="fixed inset-0 z-50">
