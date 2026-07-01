@@ -47,6 +47,7 @@ model Student {
   age             Int
   country         String
   phone           String
+  scheduleTime    String?
   courseType      CourseType
   parentName      String
   parentPhone     String
@@ -58,7 +59,7 @@ model Student {
   materials       Material[]
   payments        Payment[]
   sessionStudents SessionStudent[]
-  teacher         Teacher?          @relation(fields: [teacherId], references: [id])
+  teacher         Teacher?          @relation(fields: [teacherId], references: [id], onDelete: SetNull)
   user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   progress        StudentProgress[]
 }
@@ -85,7 +86,7 @@ model ClassSession {
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
   attendances     Attendance[]
-  teacher         Teacher          @relation(fields: [teacherId], references: [id])
+  teacher         Teacher          @relation(fields: [teacherId], references: [id], onDelete: Cascade)
   sessionStudents SessionStudent[]
 }
 
@@ -107,24 +108,25 @@ model Attendance {
   sessionId String
   status    AttendanceStatus
   createdAt DateTime         @default(now())
-  session   ClassSession     @relation(fields: [sessionId], references: [id])
-  student   Student          @relation(fields: [studentId], references: [id])
+  session   ClassSession     @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  student   Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@index([studentId])
   @@index([sessionId])
 }
 
 model Material {
-  id        String       @id @default(cuid())
-  title     String
-  fileUrl   String
-  type      MaterialType
-  teacherId String
-  studentId String?
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
-  student   Student?     @relation(fields: [studentId], references: [id])
-  teacher   Teacher      @relation(fields: [teacherId], references: [id])
+  id         String       @id @default(cuid())
+  title      String
+  fileUrl    String
+  type       MaterialType
+  courseType CourseType?  // ADDED: For course-specific materials (null = all courses)
+  teacherId  String
+  studentId  String?
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  student    Student?     @relation(fields: [studentId], references: [id], onDelete: SetNull)
+  teacher    Teacher      @relation(fields: [teacherId], references: [id], onDelete: Cascade)
 }
 
 model StudentProgress {
@@ -138,8 +140,8 @@ model StudentProgress {
   score     Int
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  student   Student  @relation(fields: [studentId], references: [id])
-  teacher   Teacher  @relation(fields: [teacherId], references: [id])
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  teacher   Teacher  @relation(fields: [teacherId], references: [id], onDelete: Cascade)
 
   @@index([studentId])
   @@index([teacherId])
@@ -156,7 +158,7 @@ model Payment {
   notes     String?
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
-  student   Student       @relation(fields: [studentId], references: [id])
+  student   Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@index([studentId])
   @@index([month])

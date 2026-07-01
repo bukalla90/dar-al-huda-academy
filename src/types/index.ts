@@ -20,6 +20,8 @@ export type ApplicationStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED';
 
 export type SessionStatus = 'SCHEDULED' | 'LIVE' | 'COMPLETED' | 'MISSED';
 
+export type MaterialType = 'PDF' | 'AUDIO' | 'IMAGE';
+
 // Course data structure for display
 export interface CourseData {
   id: CourseType;
@@ -61,6 +63,7 @@ export interface Student {
   age: number;
   country: string;
   phone: string;
+  scheduleTime: string | null;
   courseType: CourseType;
   parentName: string;
   parentPhone: string;
@@ -113,9 +116,10 @@ export interface Material {
   id: string;
   title: string;
   fileUrl: string;
+  type: MaterialType;
+  courseType: CourseType | null; // ADDED: Course-specific materials (null = all courses)
   teacherId: string;
   studentId: string | null;
-  type: 'PDF' | 'AUDIO' | 'IMAGE';
   createdAt: Date;
   updatedAt: Date;
 }
@@ -143,4 +147,14 @@ export interface Payment {
   notes: string | null;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface Notification {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  username: string | null;
+  isRead: boolean;
+  createdAt: Date;
 }
