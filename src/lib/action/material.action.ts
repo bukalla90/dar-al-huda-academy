@@ -5,7 +5,6 @@ import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 import { Prisma } from '@/generated/prisma/client';
 
-// Define the CourseType enum locally to avoid import issues
 type CourseType = 'HIFZ' | 'TAJWEED' | 'NAZIRAH' | 'MURAJAAH' | 'AQIDAH' | 'FIQH' | 'HADITH' | 'ARABIC_LANGUAGE' | 'ISLAMIC_MANNERS';
 
 const VALID_COURSE_TYPES: CourseType[] = [
@@ -32,7 +31,6 @@ export async function uploadMaterial(formData: FormData): Promise<{
     const studentId = (formData.get('studentId') as string) || null;
     const courseTypeRaw = formData.get('courseType') as string | null;
     
-    // Validate and cast courseType
     const courseType: CourseType | null = courseTypeRaw && isValidCourseType(courseTypeRaw) 
       ? courseTypeRaw 
       : null;
@@ -45,20 +43,33 @@ export async function uploadMaterial(formData: FormData): Promise<{
     if (file.type.startsWith('audio/')) type = 'AUDIO';
     else if (file.type.startsWith('image/')) type = 'IMAGE';
 
+    // Convert file to base64 for Cloudinary upload (more reliable)
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const base64 = buffer.toString('base64');
+    const dataURI = `data:${file.type};base64,${base64}`;
+
     const cloudinaryFormData = new FormData();
-    cloudinaryFormData.append('file', file);
+    cloudinaryFormData.append('file', dataURI);
     cloudinaryFormData.append('upload_preset', 'dar-al-huda-unsigned');
     cloudinaryFormData.append('folder', 'dar-al-huda-materials');
 
     const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
     
-    const response = await fetch(
-      `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`,
-      {
-        method: 'POST',
-        body: cloudinaryFormData,
-      }
-    );
+    // Use raw upload for PDFs, image upload for images, video upload for audio
+    let uploadUrl: string;
+    if (type === 'PDF') {
+      uploadUrl = `https://api.cloudinary.com/v1_1/${cloudName}/raw/upload`;
+    } else if (type === 'AUDIO') {
+      uploadUrl = `https://api.cloudinary.com/v1_1/${cloudName}/video/upload`;
+    } else {
+      uploadUrl = `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`;
+    }
+    
+    const response = await fetch(uploadUrl, {
+      method: 'POST',
+      body: cloudinaryFormData,
+    });
 
     if (!response.ok) {
       const errorData = await response.json();
@@ -67,6 +78,7 @@ export async function uploadMaterial(formData: FormData): Promise<{
     }
 
     const data = await response.json();
+    console.log('Uploaded URL:', data.secure_url);
 
     let finalTeacherId = teacherId;
     if (!finalTeacherId || userRole === 'ADMIN') {
@@ -98,7 +110,6 @@ export async function uploadMaterial(formData: FormData): Promise<{
   }
 }
 
-// Define proper type for material with relations
 type MaterialWithRelations = {
   id: string;
   title: string;
