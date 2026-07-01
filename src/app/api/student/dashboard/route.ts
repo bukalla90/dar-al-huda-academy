@@ -35,7 +35,7 @@ export async function GET(): Promise<NextResponse> {
           },
           where: {
             session: {
-              scheduledAt: { gte: new Date(new Date().setHours(0, 0, 0, 0)) }, // From today onwards
+              scheduledAt: { gte: new Date(new Date().setHours(0, 0, 0, 0)) },
               status: { in: ['SCHEDULED', 'LIVE'] },
             },
           },
@@ -46,10 +46,7 @@ export async function GET(): Promise<NextResponse> {
           orderBy: { month: 'desc' },
           take: 5,
         },
-        materials: {
-          orderBy: { createdAt: 'desc' },
-          take: 10,
-        },
+        // FIX: Remove materials from include - we'll get them separately with proper filtering
       },
     });
 
@@ -57,16 +54,30 @@ export async function GET(): Promise<NextResponse> {
       return NextResponse.json({ success: false, error: 'Student not found' }, { status: 404 });
     }
 
-    // Get general materials that are either:
-    // 1. Assigned to this student's course type
-    // 2. Available for all courses (courseType: null)
-    // AND not already assigned to this specific student
-    const generalMaterials = await prisma.material.findMany({
+    // Get ALL materials for this student (course-filtered)
+    // This includes:
+    // 1. Materials specifically assigned to this student (matching course or all courses)
+    // 2. General materials for this student's course OR all courses
+    const allMaterials = await prisma.material.findMany({
       where: {
-        studentId: null, // Not assigned to a specific student
         OR: [
-          { courseType: student.courseType }, // Materials for student's course
-          { courseType: null }, // Materials for all courses
+          // Materials assigned specifically to this student
+          {
+            studentId: studentId,
+            OR: [
+              { courseType: student.courseType },
+              { courseType: null },
+            ],
+          },
+          // General materials (not assigned to any specific student)
+          // that match student's course or are for all courses
+          {
+            studentId: null,
+            OR: [
+              { courseType: student.courseType },
+              { courseType: null },
+            ],
+          },
         ],
       },
       select: {
@@ -81,36 +92,19 @@ export async function GET(): Promise<NextResponse> {
             fullName: true,
           },
         },
+        student: {
+          select: {
+            fullName: true,
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
-      take: 5,
+      take: 15,
     });
 
-    // Also get student-specific materials with course info
-    const studentMaterials = await prisma.material.findMany({
-      where: {
-        studentId: studentId,
-        OR: [
-          { courseType: student.courseType }, // Materials for student's course
-          { courseType: null }, // Materials for all courses
-        ],
-      },
-      select: {
-        id: true,
-        title: true,
-        fileUrl: true,
-        type: true,
-        courseType: true,
-        createdAt: true,
-        teacher: {
-          select: {
-            fullName: true,
-          },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 10,
-    });
+    // Separate into student-specific and general materials for the frontend
+    const studentMaterials = allMaterials.filter(m => m.student !== null);
+    const generalMaterials = allMaterials.filter(m => m.student === null);
 
     // Transform sessions data for the frontend
     const transformedStudent = {

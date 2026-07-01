@@ -83,7 +83,7 @@ export async function uploadMaterial(formData: FormData): Promise<{
         title,
         fileUrl: data.secure_url,
         type,
-        courseType: courseType, // Now properly typed as CourseType | null
+        courseType: courseType,
         teacherId: finalTeacherId,
         studentId: studentId || null,
       },
@@ -116,10 +116,8 @@ export async function getMaterials(courseType?: string): Promise<{
   error?: string;
 }> {
   try {
-    // Build where clause without any type
     const whereClause: Record<string, unknown> = {};
     
-    // If courseType is provided and valid, get materials for that course OR all courses (null)
     if (courseType && isValidCourseType(courseType)) {
       whereClause.OR = [
         { courseType: courseType },
