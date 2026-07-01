@@ -5,6 +5,18 @@ import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 import { Prisma } from '@/generated/prisma/client';
 
+// Define the CourseType enum locally to avoid import issues
+type CourseType = 'HIFZ' | 'TAJWEED' | 'NAZIRAH' | 'MURAJAAH' | 'AQIDAH' | 'FIQH' | 'HADITH' | 'ARABIC_LANGUAGE' | 'ISLAMIC_MANNERS';
+
+const VALID_COURSE_TYPES: CourseType[] = [
+  'HIFZ', 'TAJWEED', 'NAZIRAH', 'MURAJAAH', 
+  'AQIDAH', 'FIQH', 'HADITH', 'ARABIC_LANGUAGE', 'ISLAMIC_MANNERS'
+];
+
+function isValidCourseType(value: string): value is CourseType {
+  return VALID_COURSE_TYPES.includes(value as CourseType);
+}
+
 export async function uploadMaterial(formData: FormData): Promise<{
   success: boolean;
   error?: string;
@@ -18,7 +30,12 @@ export async function uploadMaterial(formData: FormData): Promise<{
     const file = formData.get('file') as File;
     const title = formData.get('title') as string;
     const studentId = (formData.get('studentId') as string) || null;
-    const courseType = (formData.get('courseType') as string) || null;
+    const courseTypeRaw = formData.get('courseType') as string | null;
+    
+    // Validate and cast courseType
+    const courseType: CourseType | null = courseTypeRaw && isValidCourseType(courseTypeRaw) 
+      ? courseTypeRaw 
+      : null;
 
     if (!file || !title) {
       return { success: false, error: 'File and title are required' };
@@ -66,7 +83,7 @@ export async function uploadMaterial(formData: FormData): Promise<{
         title,
         fileUrl: data.secure_url,
         type,
-        courseType: courseType || null,
+        courseType: courseType, // Now properly typed as CourseType | null
         teacherId: finalTeacherId,
         studentId: studentId || null,
       },
@@ -87,7 +104,7 @@ type MaterialWithRelations = {
   title: string;
   fileUrl: string;
   type: string;
-  courseType: string | null;
+  courseType: CourseType | null;
   createdAt: Date;
   teacher: { fullName: string };
   student: { fullName: string } | null;
@@ -99,18 +116,19 @@ export async function getMaterials(courseType?: string): Promise<{
   error?: string;
 }> {
   try {
-    const whereClause: Prisma.MaterialWhereInput = {};
+    // Build where clause without any type
+    const whereClause: Record<string, unknown> = {};
     
-    // If courseType is provided, get materials for that course OR all courses (null)
-    if (courseType) {
+    // If courseType is provided and valid, get materials for that course OR all courses (null)
+    if (courseType && isValidCourseType(courseType)) {
       whereClause.OR = [
-        { courseType: courseType as Prisma.EnumCourseTypeFilter["equals"] },
+        { courseType: courseType },
         { courseType: null }
       ];
     }
 
     const materials = await prisma.material.findMany({
-      where: whereClause,
+      where: whereClause as Prisma.MaterialWhereInput,
       select: {
         id: true,
         title: true,
@@ -137,6 +155,7 @@ export async function getMaterials(courseType?: string): Promise<{
       materials: materials.map(material => ({
         ...material,
         type: material.type as string,
+        courseType: material.courseType as CourseType | null,
       }))
     };
   } catch (error) {
