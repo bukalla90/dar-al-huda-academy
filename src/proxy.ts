@@ -4,32 +4,29 @@ import type { NextRequest } from 'next/server';
 
 export function proxy(request: NextRequest): NextResponse {
   const { pathname } = request.nextUrl;
-  const hostname = request.nextUrl.hostname;
   
   // Get cookies
   const userId = request.cookies.get('userId')?.value;
   const userRole = request.cookies.get('userRole')?.value;
 
-  // IMPORTANT: Don't intercept external URLs or API calls to external services
-  // These should pass through without authentication
-  if (
-    pathname.startsWith('/_next') ||
-    pathname.startsWith('/api') ||
-    pathname.startsWith('/favicon.ico') ||
-    pathname.includes('.') ||
-    // Don't intercept resource downloads
-    pathname.includes('/dar-al-huda-materials/')
-  ) {
-    return NextResponse.next();
-  }
-
   // Public routes - accessible without login
   const publicRoutes = ['/', '/login', '/forgot-password'];
   if (publicRoutes.includes(pathname)) {
+    // If already logged in and trying to access login, redirect to dashboard
     if (pathname === '/login' && userId && userRole) {
       const dashboardUrl = getDashboardUrl(userRole);
       return NextResponse.redirect(new URL(dashboardUrl, request.url));
     }
+    return NextResponse.next();
+  }
+
+  // Static files and API routes
+  if (
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/api') ||
+    pathname.startsWith('/favicon.ico') ||
+    pathname.includes('.')
+  ) {
     return NextResponse.next();
   }
 
@@ -59,13 +56,17 @@ export function proxy(request: NextRequest): NextResponse {
 
 function getDashboardUrl(role: string): string {
   switch (role) {
-    case 'ADMIN': return '/admin';
-    case 'TEACHER': return '/teacher';
-    case 'STUDENT': return '/student';
-    default: return '/login';
+    case 'ADMIN':
+      return '/admin';
+    case 'TEACHER':
+      return '/teacher';
+    case 'STUDENT':
+      return '/student';
+    default:
+      return '/login';
   }
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.svg|.*\\.png|.*\\.jpg|.*\\.jpeg|.*\\.gif|.*\\.pdf|.*\\.mp3|.*\\.wav).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
 };
