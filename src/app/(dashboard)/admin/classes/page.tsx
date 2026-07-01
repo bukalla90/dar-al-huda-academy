@@ -232,16 +232,24 @@ export default async function ClassesPage({
               />
             </div>
             <Select name="teacher" defaultValue={filterTeacher}>
-              <SelectTrigger className="w-full sm:w-[200px] dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                <SelectValue placeholder="All Teachers" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Teachers</SelectItem>
-                {teachers.map(teacher => (
-                  <SelectItem key={teacher} value={teacher}>{teacher}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+  <SelectTrigger className="w-full sm:w-[200px] dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+    <SelectValue placeholder="All Teachers" />
+  </SelectTrigger>
+  <SelectContent className="dark:bg-gray-800 dark:border-gray-700">
+    <SelectItem value="all" className="dark:text-white dark:focus:bg-gray-700 dark:hover:bg-gray-700">
+      All Teachers
+    </SelectItem>
+    {teachers.map(teacher => (
+      <SelectItem 
+        key={teacher} 
+        value={teacher}
+        className="dark:text-white dark:focus:bg-gray-700 dark:hover:bg-gray-700"
+      >
+        {teacher}
+      </SelectItem>
+    ))}
+  </SelectContent>
+</Select>
             <input type="hidden" name="month" value={filterMonth} />
             <input type="hidden" name="year" value={filterYear} />
             <Button type="submit" variant="outline" className="dark:border-gray-600 dark:text-gray-300">
