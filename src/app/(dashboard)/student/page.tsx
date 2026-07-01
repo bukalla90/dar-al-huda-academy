@@ -257,7 +257,6 @@ export default function StudentDashboardPage(): React.ReactNode {
   const [loading, setLoading] = useState<boolean>(true);
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
 
-  // ALL HOOKS BEFORE CONDITIONAL RETURNS
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 30000);
     return () => clearInterval(timer);
@@ -334,7 +333,11 @@ export default function StudentDashboardPage(): React.ReactNode {
     window.open(meetingUrl, '_blank', 'noopener,noreferrer');
   }
 
-  // CONDITIONAL RETURNS
+  // FIX: Open file in new tab instead of using anchor tag which might be blocked
+  function openMaterial(fileUrl: string): void {
+    window.open(fileUrl, '_blank', 'noopener,noreferrer');
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -357,7 +360,6 @@ export default function StudentDashboardPage(): React.ReactNode {
     );
   }
 
-  // MAIN RENDER
   return (
     <div className="space-y-6 pb-20 lg:pb-0">
       {/* Header Bar */}
@@ -593,16 +595,27 @@ export default function StudentDashboardPage(): React.ReactNode {
             <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2 dark:text-white"><BookOpen className="h-5 w-5 text-primary" /> Course Materials</CardTitle></CardHeader>
             <CardContent>
               {allMaterials.length > 0 ? (
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   {allMaterials.slice(0, 5).map((material) => {
                     const Icon = typeIcon[material.type] || FileText;
                     return (
-                      <a key={material.id} href={material.fileUrl} target="_blank" className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                      <div key={material.id} className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                         <Icon className="h-4 w-4 text-primary shrink-0" />
-                        <span className="text-xs truncate dark:text-white">{material.title}</span>
-                        {material.courseType && <Badge variant="outline" className="text-[10px] px-1 py-0 ml-auto shrink-0">{material.courseType.replace(/_/g, ' ')}</Badge>}
-                        <Download className="h-3 w-3 text-gray-400" />
-                      </a>
+                        <span className="text-xs truncate dark:text-white flex-1">{material.title}</span>
+                        {material.courseType && (
+                          <Badge variant="outline" className="text-[10px] px-1 py-0 shrink-0">{material.courseType.replace(/_/g, ' ')}</Badge>
+                        )}
+                        {/* FIX: Use button with onClick instead of anchor tag - larger download button */}
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="h-8 px-3 text-primary border-primary hover:bg-primary hover:text-white transition-colors shrink-0"
+                          onClick={() => openMaterial(material.fileUrl)}
+                        >
+                          <Download className="h-4 w-4 mr-1" />
+                          <span className="text-xs font-medium">Download</span>
+                        </Button>
+                      </div>
                     );
                   })}
                 </div>
