@@ -4,6 +4,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -64,16 +65,26 @@ export default function LoginPage(): React.ReactNode {
         </div>
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDE4YzAtMy4zMTQtMi42ODYtNi02LTZzLTYgMi42ODYtNiA2IDIuNjg2IDYgNiA2IDYtMi42ODYgNi02ek0yNCAyNGMtMy4zMTQgMC02IDIuNjg2LTYgNnMyLjY4NiA2IDYgNiA2LTIuNjg2IDYtNi0yLjY4Ni02LTYtNnptMjQgMGMtMy4zMTQgMC02IDIuNjg2LTYgNnMyLjY4NiA2IDYgNiA2LTIuNjg2IDYtNi0yLjY4Ni02LTYtNnptLTEyIDEyYy0zLjMxNCAwLTYgMi42ODYtNiA2czIuNjg2IDYgNiA2IDYtMi42ODYgNi02LTIuNjg2LTYtNi02eiIvPjwvZz48L2c+PC9zdmc+')] opacity-30" />
 
-        <div className="relative flex flex-col justify-center px-12 text-white">
+        <div className="relative flex flex-col justify-center px-12 text-white w-full">
+          {/* Logo - Larger Size */}
           <div className="mb-8">
-            <div className="w-20 h-20 rounded-3xl bg-white/20 backdrop-blur-sm flex items-center justify-center mb-6 shadow-2xl">
-              <BookOpen className="h-10 w-10 text-white" />
-            </div>
+            <Image
+              src="/dar-al-huda-logo.svg"
+              alt="Dar Al Huda Academy"
+              width={240}
+              height={72}
+              className="h-16 sm:h-20 md:h-24 w-auto"
+              unoptimized
+            />
+          </div>
+          
+          <div className="mb-8">
             <h1 className="text-4xl font-bold mb-4">Dar Al Huda Academy</h1>
             <p className="text-xl text-white/80 leading-relaxed">
               Learn the Holy Quran online with qualified teachers from the comfort of your home.
             </p>
           </div>
+          
           <div className="mt-8 p-6 bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20">
             <p className="text-3xl font-arabic text-accent mb-3 leading-relaxed text-center">
               وَقُل رَّبِّ زِدْنِي عِلْمًا
@@ -90,9 +101,14 @@ export default function LoginPage(): React.ReactNode {
       <div className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8 bg-white dark:bg-gray-950">
         <div className="w-full max-w-md">
           <div className="lg:hidden text-center mb-6">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center mx-auto mb-3 shadow-lg">
-              <BookOpen className="h-7 w-7 text-white" />
-            </div>
+            <Image
+              src="/dar-al-huda-logo.svg"
+              alt="Dar Al Huda Academy"
+              width={160}
+              height={48}
+              className="h-12 sm:h-14 w-auto mx-auto mb-3"
+              unoptimized
+            />
             <h1 className="text-xl font-bold text-gray-900 dark:text-white">Dar Al Huda</h1>
             <p className="text-gray-500 dark:text-gray-400 text-xs mt-1">Online Quran Academy</p>
           </div>
@@ -197,7 +213,7 @@ export default function LoginPage(): React.ReactNode {
                 </p>
               </div>
 
-              {/* Back to Home - Moved below the form */}
+              {/* Back to Home */}
               <div className="mt-6 text-center">
                 <Link 
                   href="/" 
