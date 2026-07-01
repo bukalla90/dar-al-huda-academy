@@ -33,7 +33,6 @@ model Teacher {
   updatedAt DateTime          @updatedAt
   salary    Float?
   sessions  ClassSession[]
-
   students  Student[]
   progress  StudentProgress[]
   user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -120,13 +119,12 @@ model Material {
   title      String
   fileUrl    String
   type       MaterialType
-  courseType CourseType?  // ADDED: For course-specific materials (null = all courses)
- 
+  courseType CourseType?  // null = all courses
+  uploadedBy String       @default("Admin")  // ADD THIS: Who uploaded the material
   studentId  String?
   createdAt  DateTime     @default(now())
   updatedAt  DateTime     @updatedAt
   student    Student?     @relation(fields: [studentId], references: [id], onDelete: SetNull)
-  
 }
 
 model StudentProgress {

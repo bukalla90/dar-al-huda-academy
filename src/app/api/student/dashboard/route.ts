@@ -57,7 +57,6 @@ export async function GET(): Promise<NextResponse> {
     const allMaterials = await prisma.material.findMany({
       where: {
         OR: [
-          // Materials assigned specifically to this student
           {
             studentId: studentId,
             OR: [
@@ -65,7 +64,6 @@ export async function GET(): Promise<NextResponse> {
               { courseType: null },
             ],
           },
-          // General materials (not assigned to any specific student)
           {
             studentId: null,
             OR: [
@@ -81,7 +79,6 @@ export async function GET(): Promise<NextResponse> {
         fileUrl: true,
         type: true,
         courseType: true,
-        uploadedBy: true,
         createdAt: true,
         student: {
           select: {
@@ -122,7 +119,6 @@ export async function GET(): Promise<NextResponse> {
         fileUrl: m.fileUrl,
         type: m.type,
         courseType: m.courseType,
-        uploadedBy: m.uploadedBy,
       })),
     };
 
@@ -133,7 +129,6 @@ export async function GET(): Promise<NextResponse> {
       fileUrl: m.fileUrl,
       type: m.type,
       courseType: m.courseType,
-      uploadedBy: m.uploadedBy,
     }));
 
     return NextResponse.json({ 
