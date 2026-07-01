@@ -11,7 +11,7 @@ import {
   User, Phone, Clock, Quote, Settings, Sparkles,
   Heart, Brain, Lightbulb, Target, Shield, Zap,
   Mic, Users, BookMarked, ExternalLink, Timer,
-  CheckCircle, Globe, Filter
+  CheckCircle, Globe
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -257,6 +257,7 @@ export default function StudentDashboardPage(): React.ReactNode {
   const [loading, setLoading] = useState<boolean>(true);
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
 
+  // ALL HOOKS BEFORE CONDITIONAL RETURNS
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 30000);
     return () => clearInterval(timer);
@@ -296,44 +297,44 @@ export default function StudentDashboardPage(): React.ReactNode {
 
   const lastProgress = useMemo(() => student?.progress[0], [student?.progress]);
   
-  const typeIcon: Record<string, typeof FileText> = { PDF: FileText, AUDIO: Music, IMAGE: Image };
+  const typeIcon: Record<string, typeof FileText> = useMemo(() => ({ 
+    PDF: FileText, AUDIO: Music, IMAGE: Image 
+  }), []);
 
-  function getJoinWindow(session: { scheduledAt: string; meetingUrl: string }): {
-    canJoin: boolean;
-    timeUntil: string;
-    isLive: boolean;
-    isCompleted: boolean;
-  } {
+  const allMaterials = useMemo(() => {
+    if (!student) return [];
+    const combined = [...(student.materials || []), ...generalMaterials];
+    return combined.filter((material, index, self) =>
+      index === self.findIndex((m) => m.id === material.id)
+    );
+  }, [student?.materials, generalMaterials]);
+
+  const landing = useMemo(() => 
+    student ? (courseLandings[student.courseType] || defaultLanding) : defaultLanding,
+    [student?.courseType]
+  );
+  
+  const LandingIcon = landing.icon;
+
+  function getJoinWindow(session: { scheduledAt: string; meetingUrl: string }) {
     const sessionTime = new Date(session.scheduledAt);
     const diffMs = sessionTime.getTime() - currentTime.getTime();
     const diffMinutes = Math.floor(diffMs / 60000);
 
-    if (diffMinutes < -60) {
-      return { canJoin: false, timeUntil: 'Completed', isLive: false, isCompleted: true };
-    }
-    
-    if (diffMinutes <= 0 && diffMinutes >= -60) {
-      return { canJoin: true, timeUntil: 'Live now! Click Join', isLive: true, isCompleted: false };
-    }
-    
-    if (diffMinutes <= 15 && diffMinutes > 0) {
-      return { canJoin: true, timeUntil: `Starting in ${diffMinutes} min`, isLive: false, isCompleted: false };
-    }
+    if (diffMinutes < -60) return { canJoin: false, timeUntil: 'Completed', isLive: false, isCompleted: true };
+    if (diffMinutes <= 0 && diffMinutes >= -60) return { canJoin: true, timeUntil: 'Live now! Click Join', isLive: true, isCompleted: false };
+    if (diffMinutes <= 15 && diffMinutes > 0) return { canJoin: true, timeUntil: `Starting in ${diffMinutes} min`, isLive: false, isCompleted: false };
     
     const hours = Math.floor(diffMinutes / 60);
     const mins = diffMinutes % 60;
-    return { 
-      canJoin: false, 
-      timeUntil: hours > 0 ? `Starts in ${hours}h ${mins}m` : `Starts in ${mins}m`, 
-      isLive: false,
-      isCompleted: false 
-    };
+    return { canJoin: false, timeUntil: hours > 0 ? `Starts in ${hours}h ${mins}m` : `Starts in ${mins}m`, isLive: false, isCompleted: false };
   }
 
   function openZoomLink(meetingUrl: string): void {
     window.open(meetingUrl, '_blank', 'noopener,noreferrer');
   }
 
+  // CONDITIONAL RETURNS
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -356,19 +357,7 @@ export default function StudentDashboardPage(): React.ReactNode {
     );
   }
 
-  const landing = courseLandings[student.courseType] || defaultLanding;
-  const LandingIcon = landing.icon;
-
-  // Combine and deduplicate materials
-  const allMaterials = useMemo(() => {
-    const combined = [...(student.materials || []), ...generalMaterials];
-    // Remove duplicates by id
-    const unique = combined.filter((material, index, self) =>
-      index === self.findIndex((m) => m.id === material.id)
-    );
-    return unique;
-  }, [student.materials, generalMaterials]);
-
+  // MAIN RENDER
   return (
     <div className="space-y-6 pb-20 lg:pb-0">
       {/* Header Bar */}
@@ -389,7 +378,7 @@ export default function StudentDashboardPage(): React.ReactNode {
         </Link>
       </div>
 
-      {/* LANDING PAGE */}
+      {/* Landing Section */}
       <div className={`bg-gradient-to-br ${landing.gradient} rounded-3xl p-6 sm:p-10 text-white relative overflow-hidden`}>
         <div className="absolute top-0 right-0 w-80 h-80 bg-white/5 rounded-full -mr-24 -mt-24" />
         <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/5 rounded-full -ml-16 -mb-16" />
@@ -458,9 +447,9 @@ export default function StudentDashboardPage(): React.ReactNode {
         </div>
       </div>
 
-      {/* DASHBOARD CARDS */}
+      {/* Dashboard Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left */}
+        {/* Left Column */}
         <div className="space-y-4">
           <Card className="shadow-sm border dark:bg-gray-800 dark:border-gray-700">
             <CardHeader className="pb-2">
@@ -498,18 +487,14 @@ export default function StudentDashboardPage(): React.ReactNode {
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Everyday</p>
                 </div>
               ) : (
-                <p className="text-sm text-gray-500 text-center py-4">
-                  Schedule not set yet. Your teacher will assign a time.
-                </p>
+                <p className="text-sm text-gray-500 text-center py-4">Schedule not set yet. Your teacher will assign a time.</p>
               )}
             </CardContent>
           </Card>
 
           {lastProgress && (
             <Card className="shadow-sm border dark:bg-gray-800 dark:border-gray-700">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base dark:text-white">Current Progress</CardTitle>
-              </CardHeader>
+              <CardHeader className="pb-2"><CardTitle className="text-base dark:text-white">Current Progress</CardTitle></CardHeader>
               <CardContent className="space-y-2 text-sm">
                 <div className="flex justify-between"><span className="text-gray-500">Surah</span><span className="font-medium dark:text-white">{lastProgress.surah}</span></div>
                 <div className="flex justify-between"><span className="text-gray-500">Score</span><div className="flex items-center gap-1"><Star className="h-3 w-3 text-accent fill-accent" /><span className="font-medium dark:text-white">{lastProgress.score}/10</span></div></div>
@@ -535,7 +520,7 @@ export default function StudentDashboardPage(): React.ReactNode {
           </Card>
         </div>
 
-        {/* Middle - Today's Class with Status */}
+        {/* Middle Column */}
         <div className="space-y-4">
           <Card className="shadow-sm border dark:bg-gray-800 dark:border-gray-700">
             <CardHeader className="pb-2">
@@ -557,129 +542,65 @@ export default function StudentDashboardPage(): React.ReactNode {
                       }`}>
                         <div className="text-center mb-3">
                           <div className="flex items-center justify-center gap-2 mb-1">
-                            {isCompleted ? (
-                              <CheckCircle className="h-4 w-4 text-gray-500" />
-                            ) : isLive ? (
-                              <div className="flex items-center gap-1">
-                                <span className="relative flex h-3 w-3">
-                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-                                  <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500" />
-                                </span>
-                                <Timer className="h-4 w-4 text-green-600" />
-                              </div>
-                            ) : (
-                              <Timer className="h-4 w-4 text-primary" />
-                            )}
+                            {isCompleted ? <CheckCircle className="h-4 w-4 text-gray-500" /> :
+                             isLive ? <div className="flex items-center gap-1"><span className="relative flex h-3 w-3"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" /><span className="relative inline-flex rounded-full h-3 w-3 bg-green-500" /></span><Timer className="h-4 w-4 text-green-600" /></div> :
+                             <Timer className="h-4 w-4 text-primary" />}
                             <span className={`text-lg font-bold ${
                               isCompleted ? 'text-gray-500 dark:text-gray-400' :
                               isLive ? 'text-green-600 dark:text-green-400 animate-pulse' : 
-                              canJoin ? 'text-blue-600 dark:text-blue-400' : 
-                              'text-gray-600 dark:text-gray-400'
-                            }`}>
-                              {timeUntil}
-                            </span>
+                              canJoin ? 'text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400'
+                            }`}>{timeUntil}</span>
                           </div>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">
-                            Scheduled at {new Date(session.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">Scheduled at {new Date(session.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
                         </div>
-                        
-                        {isCompleted && (
-                          <Button disabled className="w-full" variant="outline">
-                            <CheckCircle className="h-4 w-4 mr-2" />
-                            Class Completed
-                          </Button>
-                        )}
-                        
+                        {isCompleted && <Button disabled className="w-full" variant="outline"><CheckCircle className="h-4 w-4 mr-2" />Class Completed</Button>}
                         {(canJoin || isLive) && !isCompleted && session.meetingUrl && (
-                          <Button 
-                            className={`w-full ${isLive ? 'bg-green-600 hover:bg-green-700 animate-pulse' : 'bg-blue-600 hover:bg-blue-700'}`}
-                            onClick={() => openZoomLink(session.meetingUrl)}
-                          >
-                            <ExternalLink className="h-4 w-4 mr-2" />
-                            {isLive ? 'Join Live Class Now!' : 'Join Zoom Class'}
+                          <Button className={`w-full ${isLive ? 'bg-green-600 hover:bg-green-700 animate-pulse' : 'bg-blue-600 hover:bg-blue-700'}`} onClick={() => openZoomLink(session.meetingUrl)}>
+                            <ExternalLink className="h-4 w-4 mr-2" />{isLive ? 'Join Live Class Now!' : 'Join Zoom Class'}
                           </Button>
                         )}
-                        
-                        {!canJoin && !isCompleted && (
-                          <Button disabled className="w-full" variant="outline">
-                            <Clock className="h-4 w-4 mr-2" />
-                            {timeUntil}
-                          </Button>
-                        )}
+                        {!canJoin && !isCompleted && <Button disabled className="w-full" variant="outline"><Clock className="h-4 w-4 mr-2" />{timeUntil}</Button>}
                       </div>
                     );
                   })}
                 </div>
               ) : (
-                <div className="text-center py-4">
-                  <Calendar className="h-10 w-10 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
-                  <p className="text-sm text-gray-500 dark:text-gray-400">No class scheduled for today</p>
-                </div>
+                <div className="text-center py-4"><Calendar className="h-10 w-10 text-gray-300 dark:text-gray-600 mx-auto mb-2" /><p className="text-sm text-gray-500 dark:text-gray-400">No class scheduled for today</p></div>
               )}
             </CardContent>
           </Card>
 
           <Card className="shadow-sm border dark:bg-gray-800 dark:border-gray-700">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center gap-2 dark:text-white">
-                <Calendar className="h-5 w-5 text-accent" /> Upcoming Schedule
-              </CardTitle>
-            </CardHeader>
+            <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2 dark:text-white"><Calendar className="h-5 w-5 text-accent" /> Upcoming Schedule</CardTitle></CardHeader>
             <CardContent>
               {upcomingSessions.length > 0 ? (
                 <div className="space-y-1.5">
                   {upcomingSessions.slice(0, 5).map((session) => (
                     <div key={session.id} className="flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg text-xs">
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-3 w-3 text-accent shrink-0" />
-                        <div>
-                          <span className="dark:text-white font-medium">
-                            {new Date(session.scheduledAt).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
-                          </span>
-                          <span className="text-gray-500 dark:text-gray-400 ml-2">
-                            {new Date(session.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </span>
-                        </div>
-                      </div>
-                      {session.meetingUrl && (
-                        <Button size="sm" variant="ghost" className="text-primary h-7 text-xs" onClick={() => openZoomLink(session.meetingUrl)}>
-                          <ExternalLink className="h-3 w-3 mr-1" />Zoom
-                        </Button>
-                      )}
+                      <div className="flex items-center gap-2"><Clock className="h-3 w-3 text-accent shrink-0" /><div><span className="dark:text-white font-medium">{new Date(session.scheduledAt).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}</span><span className="text-gray-500 dark:text-gray-400 ml-2">{new Date(session.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span></div></div>
+                      {session.meetingUrl && <Button size="sm" variant="ghost" className="text-primary h-7 text-xs" onClick={() => openZoomLink(session.meetingUrl)}><ExternalLink className="h-3 w-3 mr-1" />Zoom</Button>}
                     </div>
                   ))}
                 </div>
-              ) : (
-                <p className="text-sm text-gray-500 text-center py-4">No upcoming classes</p>
-              )}
+              ) : <p className="text-sm text-gray-500 text-center py-4">No upcoming classes</p>}
             </CardContent>
           </Card>
         </div>
 
-        {/* Right */}
+        {/* Right Column */}
         <div className="space-y-4">
           <Card className="shadow-sm border dark:bg-gray-800 dark:border-gray-700">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center gap-2 dark:text-white">
-                <BookOpen className="h-5 w-5 text-primary" /> Course Materials
-              </CardTitle>
-            </CardHeader>
+            <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2 dark:text-white"><BookOpen className="h-5 w-5 text-primary" /> Course Materials</CardTitle></CardHeader>
             <CardContent>
               {allMaterials.length > 0 ? (
                 <div className="space-y-1.5">
                   {allMaterials.slice(0, 5).map((material) => {
                     const Icon = typeIcon[material.type] || FileText;
                     return (
-                      <a key={material.id} href={material.fileUrl} target="_blank"
-                        className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                      <a key={material.id} href={material.fileUrl} target="_blank" className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                         <Icon className="h-4 w-4 text-primary shrink-0" />
                         <span className="text-xs truncate dark:text-white">{material.title}</span>
-                        {material.courseType && (
-                          <Badge variant="outline" className="text-[10px] px-1 py-0 ml-auto shrink-0">
-                            {material.courseType.replace(/_/g, ' ')}
-                          </Badge>
-                        )}
+                        {material.courseType && <Badge variant="outline" className="text-[10px] px-1 py-0 ml-auto shrink-0">{material.courseType.replace(/_/g, ' ')}</Badge>}
                         <Download className="h-3 w-3 text-gray-400" />
                       </a>
                     );
@@ -697,10 +618,7 @@ export default function StudentDashboardPage(): React.ReactNode {
                   {student.payments.slice(0, 4).map((payment) => (
                     <div key={payment.id} className="flex justify-between items-center p-2 bg-gray-50 dark:bg-gray-700/50 rounded text-xs">
                       <span className="dark:text-white">{payment.month}</span>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-gray-500 dark:text-gray-400">ETB {payment.amount}</span>
-                        <Badge variant={payment.status === 'PAID' ? 'success' : 'warning'} className="text-xs">{payment.status}</Badge>
-                      </div>
+                      <div className="flex items-center gap-1.5"><span className="text-gray-500 dark:text-gray-400">ETB {payment.amount}</span><Badge variant={payment.status === 'PAID' ? 'success' : 'warning'} className="text-xs">{payment.status}</Badge></div>
                     </div>
                   ))}
                 </div>
@@ -709,11 +627,7 @@ export default function StudentDashboardPage(): React.ReactNode {
           </Card>
 
           <Card className="shadow-sm border-0 bg-gradient-to-br from-primary to-secondary text-white">
-            <CardContent className="pt-4 pb-4 text-center">
-              <BookOpen className="h-6 w-6 mx-auto mb-1 text-white/80" />
-              <p className="text-xs text-white/70">My Course</p>
-              <p className="font-bold text-sm">{student.courseType.replace(/_/g, ' ')}</p>
-            </CardContent>
+            <CardContent className="pt-4 pb-4 text-center"><BookOpen className="h-6 w-6 mx-auto mb-1 text-white/80" /><p className="text-xs text-white/70">My Course</p><p className="font-bold text-sm">{student.courseType.replace(/_/g, ' ')}</p></CardContent>
           </Card>
         </div>
       </div>
