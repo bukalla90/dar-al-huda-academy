@@ -55,7 +55,7 @@ export function TeacherNav(): React.ReactNode {
               alt="Dar Al Huda Academy"
               width={160}
               height={48}
-               className="h-10 sm:h-11 md:h-12 lg:h-15 w-auto"     
+              className="h-10 sm:h-11 md:h-12 lg:h-15 w-auto"     
               unoptimized
             />
           </Link>
@@ -110,8 +110,22 @@ export function TeacherNav(): React.ReactNode {
             </div>
           </nav>
 
-          {/* Mobile: Students link + theme + hamburger */}
+          {/* Mobile: Dashboard link + Students link + theme + hamburger */}
           <div className="flex items-center gap-2 md:hidden">
+            {/* ADDED: Dashboard button for mobile */}
+            <Link
+              href="/teacher"
+              className={cn(
+                'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors',
+                pathname === '/teacher'
+                  ? 'bg-primary/10 text-primary'
+                  : 'text-gray-600 dark:text-gray-300'
+              )}
+            >
+              <Home className="h-4 w-4" />
+              <span>Dashboard</span>
+            </Link>
+
             <Link
               href="/teacher/students"
               className={cn(

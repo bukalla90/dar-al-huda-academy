@@ -105,7 +105,6 @@ export default function StudentProgressPage(): React.ReactNode {
       setStatus(statusResult.status);
     }
 
-    // Load student schedule time
     try {
       const res = await fetch(`/api/students/${studentId}/schedule`);
       const data = await res.json();
@@ -187,27 +186,37 @@ export default function StudentProgressPage(): React.ReactNode {
 
   return (
     <div className="space-y-6 pb-20 lg:pb-0">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+      {/* Header - FIXED: Responsive layout */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-4">
           <Link href="/teacher/students">
-            <Button variant="ghost" size="icon" className="dark:hover:bg-gray-800">
+            <Button variant="ghost" size="icon" className="dark:hover:bg-gray-800 shrink-0">
               <ArrowLeft className="h-5 w-5 dark:text-gray-300" />
             </Button>
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Student Progress</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Student Progress</h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">Track memorization and recitation</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button onClick={() => setShowScheduleForm(!showScheduleForm)} variant="outline" className="dark:border-gray-600 dark:text-gray-300">
-            <Clock className="h-4 w-4 mr-2" />
-            Set Schedule
+        {/* FIXED: Buttons stack on mobile, side by side on desktop */}
+        <div className="flex gap-2 w-full sm:w-auto">
+          <Button 
+            onClick={() => setShowScheduleForm(!showScheduleForm)} 
+            variant="outline" 
+            size="sm"
+            className="flex-1 sm:flex-none dark:border-gray-600 dark:text-gray-300"
+          >
+            <Clock className="h-4 w-4 mr-1.5" />
+            <span className="sm:inline">Set Schedule</span>
           </Button>
-          <Button onClick={() => setShowForm(!showForm)} className="bg-primary">
-            <Plus className="h-4 w-4 mr-2" />
-            Add Progress
+          <Button 
+            onClick={() => setShowForm(!showForm)} 
+            size="sm"
+            className="flex-1 sm:flex-none bg-primary"
+          >
+            <Plus className="h-4 w-4 mr-1.5" />
+            <span className="sm:inline">Add Progress</span>
           </Button>
         </div>
       </div>
@@ -232,7 +241,7 @@ export default function StudentProgressPage(): React.ReactNode {
                   This student has class everyday at this time
                 </p>
               </div>
-              <Button variant="outline" size="sm" onClick={() => setShowScheduleForm(true)} className="dark:border-gray-600 dark:text-gray-300">
+              <Button variant="outline" size="sm" onClick={() => setShowScheduleForm(true)} className="dark:border-gray-600 dark:text-gray-300 shrink-0">
                 Change
               </Button>
             </div>

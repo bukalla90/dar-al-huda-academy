@@ -163,7 +163,7 @@ const courseLandings: Record<string, {
       { icon: Heart, title: 'ልብን ያረጋል', description: 'በአላህ ላይ ትክክለኛ እምነት ልብን ያረጋል፣ ሰላምን ያሰፍናል።' },
     ],
     tips: ['Study from authentic sources only', 'Discuss with your teacher regularly', 'Memorize key proofs from Quran & Sunnah', 'Read books of authentic Aqeedah'],
-    gradient: 'from-yellow-600 via-amber-500 to-orange-600',
+     gradient: 'from-emerald-600 via-teal-500 to-green-600',
     icon: Shield,
   },
   FIQH: {
@@ -199,7 +199,7 @@ const courseLandings: Record<string, {
       { icon: Zap, title: 'ተግባራዊ ማድረግ', description: 'የተማሩትን ሐዲስ በዕለት ተዕለት ሕይወት ውስጥ ተግባራዊ ማድረግ ይችላሉ።' },
     ],
     tips: ['Start with short hadith collections', 'Memorize one hadith per week', 'Learn the meaning and context', 'Apply hadith teachings in daily life'],
-    gradient: 'from-red-600 via-rose-500 to-pink-600',
+     gradient: 'from-emerald-600 via-teal-500 to-green-600',
     icon: BookOpen,
   },
   ARABIC_LANGUAGE: {
