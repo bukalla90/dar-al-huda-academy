@@ -117,8 +117,8 @@ export interface Material {
   title: string;
   fileUrl: string;
   type: MaterialType;
-  courseType: CourseType | null; // ADDED: Course-specific materials (null = all courses)
-  teacherId: string;
+  courseType: CourseType | null;
+  uploadedBy: string;
   studentId: string | null;
   createdAt: Date;
   updatedAt: Date;

@@ -46,7 +46,6 @@ export async function GET(): Promise<NextResponse> {
           orderBy: { month: 'desc' },
           take: 5,
         },
-        // FIX: Remove materials from include - we'll get them separately with proper filtering
       },
     });
 
@@ -55,9 +54,6 @@ export async function GET(): Promise<NextResponse> {
     }
 
     // Get ALL materials for this student (course-filtered)
-    // This includes:
-    // 1. Materials specifically assigned to this student (matching course or all courses)
-    // 2. General materials for this student's course OR all courses
     const allMaterials = await prisma.material.findMany({
       where: {
         OR: [
@@ -70,7 +66,6 @@ export async function GET(): Promise<NextResponse> {
             ],
           },
           // General materials (not assigned to any specific student)
-          // that match student's course or are for all courses
           {
             studentId: null,
             OR: [
@@ -86,12 +81,8 @@ export async function GET(): Promise<NextResponse> {
         fileUrl: true,
         type: true,
         courseType: true,
+        uploadedBy: true,
         createdAt: true,
-        teacher: {
-          select: {
-            fullName: true,
-          },
-        },
         student: {
           select: {
             fullName: true,
@@ -102,7 +93,7 @@ export async function GET(): Promise<NextResponse> {
       take: 15,
     });
 
-    // Separate into student-specific and general materials for the frontend
+    // Separate into student-specific and general materials
     const studentMaterials = allMaterials.filter(m => m.student !== null);
     const generalMaterials = allMaterials.filter(m => m.student === null);
 
@@ -131,6 +122,7 @@ export async function GET(): Promise<NextResponse> {
         fileUrl: m.fileUrl,
         type: m.type,
         courseType: m.courseType,
+        uploadedBy: m.uploadedBy,
       })),
     };
 
@@ -141,6 +133,7 @@ export async function GET(): Promise<NextResponse> {
       fileUrl: m.fileUrl,
       type: m.type,
       courseType: m.courseType,
+      uploadedBy: m.uploadedBy,
     }));
 
     return NextResponse.json({ 

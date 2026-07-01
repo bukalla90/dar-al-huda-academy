@@ -24,9 +24,12 @@ import { getStudentsPaginated } from '@/lib/action/student.actions';
 import { getPaymentStatusColor } from '@/lib/utils';
 import { 
   Search, Eye, UserPlus, Users, BookOpen, Filter,
-  ChevronLeft, ChevronRight, Trash2,
+  ChevronLeft, ChevronRight, Trash2, X,
 } from 'lucide-react';
 import { DeleteStudentButton } from '@/components/admin/delete-student-button';
+
+// FIX: Create a client component for the filter form so Select changes auto-submit
+import { FilterForm } from './filter-form';
 
 export default async function StudentsPage({
   searchParams,
@@ -98,46 +101,12 @@ export default async function StudentsPage({
         </Card>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <form className="flex-1 flex flex-col sm:flex-row gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <Input name="search" placeholder="Search students..." defaultValue={search}
-              className="pl-10 dark:bg-gray-800 dark:border-gray-700 dark:text-white" />
-          </div>
-          <Select name="course" defaultValue={course}>
-            <SelectTrigger className="w-full sm:w-[180px] dark:bg-gray-800 dark:border-gray-700 dark:text-white">
-              <SelectValue placeholder="All Courses" />
-            </SelectTrigger>
-            <SelectContent className="dark:bg-gray-800 dark:border-gray-700">
-              <SelectItem value="">All Courses</SelectItem>
-              <SelectItem value="HIFZ">Hifz</SelectItem>
-              <SelectItem value="TAJWEED">Tajweed</SelectItem>
-              <SelectItem value="NAZIRAH">Nazirah</SelectItem>
-              <SelectItem value="MURAJAAH">Murajaah</SelectItem>
-              <SelectItem value="AQIDAH">Aqidah</SelectItem>
-              <SelectItem value="FIQH">Fiqh</SelectItem>
-              <SelectItem value="HADITH">Hadith</SelectItem>
-              <SelectItem value="ARABIC_LANGUAGE">Arabic Language</SelectItem>
-              <SelectItem value="ISLAMIC_MANNERS">Islamic Manners</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select name="status" defaultValue={status}>
-            <SelectTrigger className="w-full sm:w-[180px] dark:bg-gray-800 dark:border-gray-700 dark:text-white">
-              <SelectValue placeholder="All Status" />
-            </SelectTrigger>
-            <SelectContent className="dark:bg-gray-800 dark:border-gray-700">
-              <SelectItem value="">All Status</SelectItem>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="inactive">Inactive</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button type="submit" variant="outline" className="w-full sm:w-auto dark:border-gray-700 dark:text-gray-300">
-            <Filter className="h-4 w-4 mr-2" />Filter
-          </Button>
-        </form>
-      </div>
+      {/* FIXED: Use client component FilterForm for auto-submit on Select change */}
+      <FilterForm 
+        initialSearch={search} 
+        initialCourse={course} 
+        initialStatus={status} 
+      />
 
       {/* Mobile Cards */}
       <div className="block lg:hidden space-y-3">
@@ -189,7 +158,11 @@ export default async function StudentsPage({
           <div className="text-center py-12">
             <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 dark:text-white">No students found</h3>
-            <p className="text-gray-500 dark:text-gray-400 mt-1">Get started by adding a new student.</p>
+            <p className="text-gray-500 dark:text-gray-400 mt-1">
+              {search || course || status 
+                ? 'Try adjusting your filters.' 
+                : 'Get started by adding a new student.'}
+            </p>
           </div>
         )}
       </div>
@@ -211,46 +184,60 @@ export default async function StudentsPage({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {students.map((student) => (
-                  <TableRow key={student.id} className="dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                    <TableCell>
-                      <Link href={`/admin/students/${student.id}`}>
-                        <p className="font-medium text-gray-900 dark:text-white">{student.fullName}</p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">{student.country}</p>
-                      </Link>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="dark:border-gray-600 dark:text-gray-300">
-                        {student.courseType.replace(/_/g, ' ')}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="dark:text-gray-300">{student.teacher?.fullName || 'Unassigned'}</TableCell>
-                    <TableCell>
-                      <Badge variant={student.user.isActive ? 'success' : 'secondary'}>
-                        {student.user.isActive ? 'Active' : 'Inactive'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {student.payments[0] ? (
-                        <Badge className={getPaymentStatusColor(student.payments[0].status as 'PAID' | 'UNPAID' | 'PARTIAL' | 'OVERDUE')}>
-                          {student.payments[0].status}
-                        </Badge>
-                      ) : (
-                        <span className="text-gray-400 dark:text-gray-500">No payments</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Link href={`/admin/students/${student.id}`}>
-                        <Button variant="ghost" size="icon" className="dark:hover:bg-gray-700">
-                          <Eye className="h-4 w-4 dark:text-gray-400" />
-                        </Button>
-                      </Link>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <DeleteStudentButton studentId={student.id} studentName={student.fullName} />
+                {students.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-12">
+                      <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                      <h3 className="text-lg font-medium text-gray-900 dark:text-white">No students found</h3>
+                      <p className="text-gray-500 dark:text-gray-400 mt-1">
+                        {search || course || status 
+                          ? 'Try adjusting your filters.' 
+                          : 'Get started by adding a new student.'}
+                      </p>
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : (
+                  students.map((student) => (
+                    <TableRow key={student.id} className="dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                      <TableCell>
+                        <Link href={`/admin/students/${student.id}`}>
+                          <p className="font-medium text-gray-900 dark:text-white">{student.fullName}</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">{student.country}</p>
+                        </Link>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="dark:border-gray-600 dark:text-gray-300">
+                          {student.courseType.replace(/_/g, ' ')}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="dark:text-gray-300">{student.teacher?.fullName || 'Unassigned'}</TableCell>
+                      <TableCell>
+                        <Badge variant={student.user.isActive ? 'success' : 'secondary'}>
+                          {student.user.isActive ? 'Active' : 'Inactive'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {student.payments[0] ? (
+                          <Badge className={getPaymentStatusColor(student.payments[0].status as 'PAID' | 'UNPAID' | 'PARTIAL' | 'OVERDUE')}>
+                            {student.payments[0].status}
+                          </Badge>
+                        ) : (
+                          <span className="text-gray-400 dark:text-gray-500">No payments</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Link href={`/admin/students/${student.id}`}>
+                          <Button variant="ghost" size="icon" className="dark:hover:bg-gray-700">
+                            <Eye className="h-4 w-4 dark:text-gray-400" />
+                          </Button>
+                        </Link>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <DeleteStudentButton studentId={student.id} studentName={student.fullName} />
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </CardContent>
@@ -260,20 +247,32 @@ export default async function StudentsPage({
       {/* Pagination */}
       {data && data.totalPages > 1 && (
         <div className="flex items-center justify-center gap-2">
-          <Link href={`/admin/students?page=${page - 1}${search ? `&search=${search}` : ''}${course ? `&course=${course}` : ''}${status ? `&status=${status}` : ''}`}
-            className={page <= 1 ? 'pointer-events-none opacity-50' : ''}>
+          <Link 
+            href={`/admin/students?page=${page - 1}&search=${search}&course=${course}&status=${status}`}
+            className={page <= 1 ? 'pointer-events-none opacity-50' : ''}
+          >
             <Button variant="outline" size="sm" disabled={page <= 1} className="dark:border-gray-700 dark:text-gray-300">
               <ChevronLeft className="h-4 w-4" />
             </Button>
           </Link>
           {Array.from({ length: data.totalPages }, (_, i) => i + 1).map((pageNum) => (
-            <Link key={pageNum} href={`/admin/students?page=${pageNum}${search ? `&search=${search}` : ''}${course ? `&course=${course}` : ''}${status ? `&status=${status}` : ''}`}>
-              <Button variant={pageNum === data.currentPage ? 'default' : 'outline'} size="sm"
-                className={pageNum === data.currentPage ? '' : 'dark:border-gray-700 dark:text-gray-300'}>{pageNum}</Button>
+            <Link 
+              key={pageNum} 
+              href={`/admin/students?page=${pageNum}&search=${search}&course=${course}&status=${status}`}
+            >
+              <Button 
+                variant={pageNum === data.currentPage ? 'default' : 'outline'} 
+                size="sm"
+                className={pageNum === data.currentPage ? '' : 'dark:border-gray-700 dark:text-gray-300'}
+              >
+                {pageNum}
+              </Button>
             </Link>
           ))}
-          <Link href={`/admin/students?page=${page + 1}${search ? `&search=${search}` : ''}${course ? `&course=${course}` : ''}${status ? `&status=${status}` : ''}`}
-            className={page >= data.totalPages ? 'pointer-events-none opacity-50' : ''}>
+          <Link 
+            href={`/admin/students?page=${page + 1}&search=${search}&course=${course}&status=${status}`}
+            className={page >= data.totalPages ? 'pointer-events-none opacity-50' : ''}
+          >
             <Button variant="outline" size="sm" disabled={page >= data.totalPages} className="dark:border-gray-700 dark:text-gray-300">
               <ChevronRight className="h-4 w-4" />
             </Button>

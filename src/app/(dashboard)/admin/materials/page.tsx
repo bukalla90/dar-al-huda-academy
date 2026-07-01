@@ -23,8 +23,8 @@ interface MaterialType {
   fileUrl: string;
   type: string;
   courseType: string | null;
+  uploadedBy: string;
   createdAt: Date;
-  teacher: { fullName: string };
   student: { fullName: string } | null;
 }
 
@@ -58,7 +58,7 @@ export default function MaterialsPage(): React.ReactNode {
     setLoading(true);
     const result = await getMaterials(filterCourse === 'all' ? undefined : filterCourse);
     if (result.success && result.materials) {
-      setMaterials(result.materials);
+      setMaterials(result.materials as MaterialType[]);
     }
     setLoading(false);
   }, [filterCourse]);
@@ -67,7 +67,6 @@ export default function MaterialsPage(): React.ReactNode {
     loadData();
   }, [loadData]);
 
-  // Filter materials client-side for display
   const filteredMaterials = useMemo(() => {
     if (filterCourse === 'all') return materials;
     return materials.filter(m => 
@@ -89,11 +88,9 @@ export default function MaterialsPage(): React.ReactNode {
     formData.append('file', file);
     formData.append('title', title);
     
-    // Only add courseType if "all" is not selected
     if (selectedCourse !== 'all') {
       formData.append('courseType', selectedCourse);
     }
-    // If "all" is selected, courseType will be null (available to all courses)
 
     const result = await uploadMaterial(formData);
 
@@ -230,7 +227,6 @@ export default function MaterialsPage(): React.ReactNode {
               />
             </div>
             
-            {/* Course Selection Dropdown */}
             <div>
               <Label className="dark:text-gray-300">Course *</Label>
               <Select value={selectedCourse} onValueChange={setSelectedCourse}>
@@ -318,8 +314,11 @@ export default function MaterialsPage(): React.ReactNode {
                           </Button>
                         </div>
                         <div className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                          <p>By: {material.teacher.fullName}</p>
+                          <p>By: {material.uploadedBy}</p>
                           {material.student && <p>For: {material.student.fullName}</p>}
+                          {!material.student && (
+                            <p>For: {material.courseType ? material.courseType.replace(/_/g, ' ') : 'All Students'}</p>
+                          )}
                           <p className="text-xs mt-0.5">{new Date(material.createdAt).toLocaleDateString()}</p>
                         </div>
                         <a 
@@ -369,9 +368,11 @@ export default function MaterialsPage(): React.ReactNode {
                       </div>
                     </div>
                     <div className="text-sm text-gray-500 dark:text-gray-400 space-y-1 mb-4">
-                      <p>By: {material.teacher.fullName}</p>
+                      <p>By: {material.uploadedBy}</p>
                       {material.student && <p>For: {material.student.fullName}</p>}
-                      {!material.student && <p>For: All Students</p>}
+                      {!material.student && (
+                        <p>For: {material.courseType ? material.courseType.replace(/_/g, ' ') : 'All Students'}</p>
+                      )}
                       <p>{new Date(material.createdAt).toLocaleDateString()}</p>
                     </div>
                     <a 

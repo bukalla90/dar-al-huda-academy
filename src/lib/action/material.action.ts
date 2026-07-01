@@ -25,6 +25,7 @@ export async function uploadMaterial(formData: FormData): Promise<{
     const cookieStore = await cookies();
     const teacherId = cookieStore.get('teacherId')?.value;
     const userRole = cookieStore.get('userRole')?.value;
+    const userId = cookieStore.get('userId')?.value;
 
     const file = formData.get('file') as File;
     const title = formData.get('title') as string;
@@ -43,7 +44,6 @@ export async function uploadMaterial(formData: FormData): Promise<{
     if (file.type.startsWith('audio/')) type = 'AUDIO';
     else if (file.type.startsWith('image/')) type = 'IMAGE';
 
-    // Convert file to base64 for Cloudinary upload (more reliable)
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
     const base64 = buffer.toString('base64');
@@ -56,7 +56,6 @@ export async function uploadMaterial(formData: FormData): Promise<{
 
     const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
     
-    // Use raw upload for PDFs, image upload for images, video upload for audio
     let uploadUrl: string;
     if (type === 'PDF') {
       uploadUrl = `https://api.cloudinary.com/v1_1/${cloudName}/raw/upload`;
@@ -78,16 +77,21 @@ export async function uploadMaterial(formData: FormData): Promise<{
     }
 
     const data = await response.json();
-    console.log('Uploaded URL:', data.secure_url);
 
-    let finalTeacherId = teacherId;
-    if (!finalTeacherId || userRole === 'ADMIN') {
-      const anyTeacher = await prisma.teacher.findFirst();
-      if (anyTeacher) {
-        finalTeacherId = anyTeacher.id;
-      } else {
-        return { success: false, error: 'No teacher found. Create a teacher first.' };
-      }
+    // Determine who is uploading
+    let uploadedBy = 'Admin';
+    if (userRole === 'TEACHER') {
+      const teacher = await prisma.teacher.findUnique({
+        where: { id: teacherId },
+        select: { fullName: true },
+      });
+      uploadedBy = teacher?.fullName || 'Teacher';
+    } else if (userRole === 'ADMIN' && userId) {
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { username: true },
+      });
+      uploadedBy = user?.username || 'Admin';
     }
 
     await prisma.material.create({
@@ -96,7 +100,7 @@ export async function uploadMaterial(formData: FormData): Promise<{
         fileUrl: data.secure_url,
         type,
         courseType: courseType,
-        teacherId: finalTeacherId,
+        uploadedBy: uploadedBy,
         studentId: studentId || null,
       },
     });
@@ -116,8 +120,8 @@ type MaterialWithRelations = {
   fileUrl: string;
   type: string;
   courseType: CourseType | null;
+  uploadedBy: string;
   createdAt: Date;
-  teacher: { fullName: string };
   student: { fullName: string } | null;
 };
 
@@ -144,12 +148,8 @@ export async function getMaterials(courseType?: string): Promise<{
         fileUrl: true,
         type: true,
         courseType: true,
+        uploadedBy: true,
         createdAt: true,
-        teacher: {
-          select: {
-            fullName: true,
-          },
-        },
         student: {
           select: {
             fullName: true,
@@ -162,9 +162,14 @@ export async function getMaterials(courseType?: string): Promise<{
     return { 
       success: true, 
       materials: materials.map(material => ({
-        ...material,
+        id: material.id,
+        title: material.title,
+        fileUrl: material.fileUrl,
         type: material.type as string,
         courseType: material.courseType as CourseType | null,
+        uploadedBy: material.uploadedBy,
+        createdAt: material.createdAt,
+        student: material.student ? { fullName: material.student.fullName } : null,
       }))
     };
   } catch (error) {
