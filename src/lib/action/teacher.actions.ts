@@ -111,10 +111,11 @@ export async function deleteTeacher(teacherId: string): Promise<{
     }
 
     // Delete all related records first to avoid foreign key constraints
+    // NOTE: Material no longer has teacherId, so we skip that
     await prisma.$transaction([
       prisma.classSession.deleteMany({ where: { teacherId } }),
       prisma.studentProgress.deleteMany({ where: { teacherId } }),
-      prisma.material.deleteMany({ where: { teacherId } }),
+      // Materials are NOT deleted - they stay with uploadedBy field
       prisma.student.updateMany({ where: { teacherId }, data: { teacherId: null } }),
     ]);
 
@@ -124,6 +125,7 @@ export async function deleteTeacher(teacherId: string): Promise<{
     });
 
     revalidatePath('/admin/teachers');
+    revalidatePath('/admin/materials');
     return { success: true };
   } catch (error) {
     console.error('Delete teacher error:', error);
