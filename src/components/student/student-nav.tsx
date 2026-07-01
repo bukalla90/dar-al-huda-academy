@@ -53,7 +53,7 @@ export function StudentNav(): React.ReactNode {
               alt="Dar Al Huda Academy"
               width={160}
               height={48}
-                 className="h-10 sm:h-11 md:h-12 lg:h-15 w-auto"          
+              className="h-10 sm:h-11 md:h-12 lg:h-15 w-auto"          
               unoptimized
             />
           </Link>
@@ -95,8 +95,24 @@ export function StudentNav(): React.ReactNode {
             </div>
           </nav>
 
-          {/* Mobile: Theme toggle + hamburger */}
+          {/* Mobile: Dashboard button + Theme toggle + hamburger */}
+          {/* FIX: Added Dashboard button, removed Settings from navbar */}
           <div className="flex items-center gap-2 md:hidden">
+            {/* Dashboard button - always visible on mobile */}
+            <Link
+              href="/student"
+              className={cn(
+                'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors',
+                pathname === '/student'
+                  ? 'bg-primary/10 text-primary'
+                  : 'text-gray-600 dark:text-gray-300'
+              )}
+            >
+              <Home className="h-4 w-4" />
+              <span>Dashboard</span>
+            </Link>
+
+            {/* Theme Toggle */}
             <Button
               variant="ghost"
               size="icon"
@@ -106,6 +122,7 @@ export function StudentNav(): React.ReactNode {
               {theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
             </Button>
             
+            {/* Hamburger Menu */}
             <Button
               variant="ghost"
               size="icon"
@@ -118,7 +135,7 @@ export function StudentNav(): React.ReactNode {
         </div>
       </div>
 
-      {/* Mobile Menu Overlay */}
+      {/* Mobile Menu Overlay - Settings and Home are here */}
       {mobileMenuOpen && (
         <div className="md:hidden">
           <div className="fixed inset-0 z-50">
